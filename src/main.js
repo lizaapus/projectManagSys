@@ -10,7 +10,6 @@ import 'element-ui/lib/theme-chalk/index.css'
 setaxios()
 Vue.prototype.$http = axios
 Vue.config.productionTip = false
-
 Vue.use(ElementUI)
 new Vue({
     router,

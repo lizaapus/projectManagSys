@@ -5,9 +5,7 @@ module.exports = {
         devServer: {
             port: 7100,
             open: true,
-
             //mock数据
-
         }
     }
 }
