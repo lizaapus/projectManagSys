@@ -4,7 +4,7 @@ module.exports = {
         host: '192.168.106.60',
         user: 'root',
         password: 'cnkittod',
-        database: 'Test',
+        database: 'test',
         port: '3306'
     }
 }

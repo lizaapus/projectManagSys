@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
     <el-col :span="24">
-      <el-avatar :size="large" icon="el-icon-user-solid"></el-avatar>
+      <el-avatar icon="el-icon-user-solid"></el-avatar>
       <el-menu
         default-active="2"
         class="el-menu-vertical-demo"

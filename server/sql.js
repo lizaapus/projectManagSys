@@ -1,12 +1,12 @@
 //sql语句 
 var sqlMap = {
     projectSql: {
-        addnewProject: 'insert into project(id,name ,url)values(?,?,?)',
+        addnewProject: 'insert into project(id,WebName,Section,Source,City,StartUrl,LastRunTime,LatestTime,Count,RowXPath,LinkXPath,DateXPath)values(?,?,?,?,?,?,?,?,?,?,?,?)',
         //limit 20,10检索第20条到第30条数据
-        getLimitItem: 'select * from project limit ? , ?',
+        getLimitItem: 'select * from project',
         getCount: 'select count(*) from project',
-        updateProject: 'update film set name=?,url=? where id=?',
-        deletePorject: 'delete from user where id = ?',
+        updateItem: 'update project WebName=?,Section=?,Source=?,City=?,StartUrl=?,LastRunTime=?,LatestTime=?,Count=? where id=?',
+        deleteItem: 'delete from project where id = ?',
     }
 }
 
