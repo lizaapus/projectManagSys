@@ -13,7 +13,8 @@ module.exports = {
                     ws: true,
                     pathRewrite: {
                         '^/api': '/api'
-                    }
+                    },
+                    "secure": false
                 }
             }
         }

@@ -22,7 +22,7 @@
             </el-form-item>
           </el-form>
           <el-table :data="listProject" border style="width:100%" stripe @row-dblclick="rowClick">
-            <el-table-column fixed prop="ID" label="ID" width="150"></el-table-column>
+            <!-- <el-table-column fixed prop="ID" label="ID" width="150"></el-table-column> -->
             <el-table-column prop="WebName" label="网站名" width="120"></el-table-column>
             <el-table-column prop="Section" label="网站栏目" width="120"></el-table-column>
             <el-table-column prop="Source" label="来源" width="120"></el-table-column>
@@ -38,6 +38,13 @@
               </template>
             </el-table-column>
           </el-table>
+           <el-pagination
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-size="10"
+      layout="total, prev, pager, next, jumper"
+      :total="AllCount">
+    </el-pagination>
           <el-dialog :visible.sync="centerDialogVisible" width="30%" center>
             <el-form
               ref="ruleForm"
@@ -84,24 +91,25 @@
             </el-form>
             <span slot="footer" class="dialog-footer">
               <el-button @click="centerDialogVisible = false">取 消</el-button>
-              <el-button type="primary" @click="addItem">提 交</el-button>
+              <el-button type="primary" @click="AddOrUpdateItem">提 交</el-button>
             </span>
           </el-dialog>
         </div>
       </el-col>
     </el-col>
-    <!-- 
-    <div></div>-->
   </div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from "vuex";
 import { truncate } from "fs";
+import { brotliCompress } from 'zlib';
+import { type } from 'os';
 export default {
   name: "center",
   data() {
     return {
+      type:0,
       centerDialogVisible: false,
       form: {
         id: "",
@@ -141,12 +149,14 @@ export default {
         LinkXPath: [{ required: true, message: "LinkXPath", trigger: "blur" }],
         DateXPath: [{ required: true, message: "DateXPath", trigger: "blur" }]
       }
+
     };
   },
   computed: {
-    ...mapGetters(["listProject", "sWebName", "sCity", "sStartUrl"])
+    ...mapGetters(["listProject", "sWebName", "sCity", "sStartUrl",'AllCount','currentPage'])
   },
   mounted: function() {
+    this.$store.dispatch("LOAD_ALL_COUNT");
     this.$store.dispatch("LOAD_PROJECT_LIST");
   },
   methods: {
@@ -161,29 +171,41 @@ export default {
     },
     //查看
     detailPorject(row) {
+      this.type =2;
       console.log(row);
       centerDialogVisible = true;
-      this.$store.dispatch("", row);
     },
     //双击修改
     rowClick(row, column, cell, event) {
+      this.type = 1;//1表示修改
       console.log(row, column, cell, event);
       this.centerDialogVisible = true;
     },
     addNewItem() {
+      this.type = 0;
       this.centerDialogVisible = true;
     },
     //添加
-    addItem() {
-      var id = "";
-      while (id.length < 20) {
-        id += Math.random()
-          .toString(36)
-          .substr(2);
+    AddOrUpdateItem() {
+      switch (this.type) {
+        case 0:
+          var id = "";
+          while (id.length < 20) {
+            id += Math.random()
+              .toString(36)
+              .substr(2);
+          }
+          this.form.id = id;
+          this.$store.dispatch("ADD_NEW_PROJECT", this.form);
+          break;
+        case 1:
+          this.$store.dispatch("UPDATE_PROJECT", this.form);
+          break;
       }
-      this.form.id = id;
-      this.$store.dispatch("ADD_NEW_PROJECT", this.form);
       this.centerDialogVisible = false;
+    },
+    handleCurrentChange(val) {
+      this.$store.dispatch('PAGE_CHANGED',val)
     }
   }
 };
@@ -195,7 +217,7 @@ export default {
 }
 .searchDiv {
   margin-top: 130px;
-  text-align: left;
+  text-align: center;
 }
 .el-row {
   margin-bottom: 20px;
