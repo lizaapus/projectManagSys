@@ -10,12 +10,13 @@ Vue.use(Vuex)
 export default new Vuex.Store({
     state: {
         listProject: [],
-        searchWebName: '中国政府网',
-        searchCity: '北京',
-        searchStartUrl: 'www.gov.cn',
-        AllCount:52,
-        startindex:0,
-        offsite:10
+        searchWebName: '',
+        searchCity: '',
+        searchStartUrl: '',
+        AllCount: 0,
+        startindex: 0,
+        offsite: 10,
+        currentPage: 1,
     },
 
     mutations: {
@@ -23,37 +24,46 @@ export default new Vuex.Store({
             projectlist
         }) => {
             state.listProject = projectlist
-            console.log(state.listProject);
         },
-        SET_ALL_COUNT:(state,dispatch,{
+        SET_ALL_COUNT: (state, {
             count
-        })=>{
+        }) => {
             state.AllCount = count;
-            state.currentPage = 1;
-            state.startindex = (state.currentPage-1)*10;
-            state.offsite = state.currentPage*10>state.AllCount?10:state.AllCount;
-            
+            state.startindex = (state.currentPage - 1) * 10;
+            state.offsite = state.currentPage * 10 > state.AllCount ? state.AllCount : 10;
         },
-        SET_PAGE:(state,dispatch,{
+        SET_PAGE: (state, {
             val
-        })=>{
+        }) => {
             state.currentPage = val;
-            state.startindex = (val-1)*10;
-            state.offsite = 10>(state.AllCount-val*10)?10:(state.AllCount-val*10);
-            dispatch('LOAD_PROJECT_LIST');
+            state.startindex = (val - 1) * 10;
+            state.offsite = 10 > (state.AllCount - (val - 1) * 10) ? (state.AllCount - (val - 1) * 10) : 10;
         },
+        SET_WENNAME(state, val) {
+            state.searchWebName = val
+        },
+        SET_CITY(state, val) {
+            state.searchCity = val;
+        },
+        SET_URL(state, val) {
+            state.searchStartUrl = val;
+        }
     },
-    //action需要一个启动的名称，mutations会根据commit的名称来刷新相应的action
     actions: {
         //获取记录总数
-        LOAD_ALL_COUNT:function  ({
+        LOAD_ALL_COUNT: function({
             dispatch,
             commit
-        }){
-            axios.get('/api/project/getItemsNumb').then((res)=>{
-                console.log(res.data);
-                commit('SET_ALL_COUNT',{count: res.data});
-            },(err)=>{
+        }) {
+            axios.get('/api/project/getItemsNumb').then((res) => {
+                commit('SET_ALL_COUNT', {
+                    count: parseInt(res.data[0]["count(*)"])
+                });
+            }, (err) => {
+                console.log(err);
+            }).then(() => {
+                dispatch('LOAD_PROJECT_LIST');
+            }, (err) => {
                 console.log(err);
             })
         },
@@ -63,13 +73,30 @@ export default new Vuex.Store({
             dispatch,
             commit
         }) {
-            var params = {startIndex:state.startindex,offsite:state.offsite};
-            console.log(params);
-            axios.post('/api/project/getLimitItem',params).then((res)=>{
-                // commit('SET_PROJECT_LIST',{
-                //     projectlist: res.data
-                // })
-            });
+            if (state.searchWebName == '' && state.searchCity == '' && state.searchStartUrl == '') {
+                var params = {
+                    startIndex: state.startindex,
+                    offsite: state.offsite
+                };
+                axios.post('/api/project/getLimitItem', params).then((res) => {
+                    commit('SET_PROJECT_LIST', {
+                        projectlist: res.data
+                    })
+                });
+            } else {
+                var params = {
+                    searchWebName: state.searchWebName,
+                    searchCity: state.searchCity,
+                    searchStartUrl: state.searchStartUrl,
+                    startIndex: state.startindex,
+                    offsite: state.offsite
+                };
+                axios.post('/api/project/searchItems', params).then((res) => {
+                    commit('SET_PROJECT_LIST', {
+                        projectlist: res.data
+                    })
+                });
+            }
         },
         //增加新项目
         ADD_NEW_PROJECT: function({
@@ -77,21 +104,16 @@ export default new Vuex.Store({
             commit
         }, params) {
             axios.post('/api/project/addProject', params).then((res) => {
-                //更新总数
-               
-                dispatch('LOAD_ALL_COUNT');
-                 //重新加载列表
-                dispatch('LOAD_PROJECT_LIST')
+                dispatch('SEARCH_PROJECTS');
             })
-        }, 
+        },
         //删除指定项目
         DELETE_PROJECT: function({
             dispatch,
             commit
         }, item) {
-            axios.delete('api/project/deleteUser?id=' + item).then((res) => {
-                dispatch('LOAD_ALL_COUNT');
-                dispatch('LOAD_PROJECT_LIST')
+            axios.delete('api/project/deleteItem?id=' + item).then((res) => {
+                dispatch('SEARCH_PROJECTS');
             })
         },
         //更新指定项目
@@ -102,38 +124,60 @@ export default new Vuex.Store({
             axios.post('/api/project/updateItem', params).then((res) => {
                 dispatch('LOAD_PROJECT_LIST');
             })
-        }, 
+        },
         //查询符合条件的项目
         SEARCH_PROJECTS: function({
+            state,
             dispatch,
-            commit,       
-        } ,item) {
-            axios.post('api/project/searchItems', params).then((res) => {
-                userList: res.data
+            commit,
+        }) {
+            console.log('search enter vuex');
+            var params = {
+                searchWebName: state.searchWebName,
+                searchCity: state.searchCity,
+                searchStartUrl: state.searchStartUrl,
+                startIndex: state.startindex,
+                offsite: state.offsite
+            };
+            axios.post('api/project/searchItemsCount', params).then((res) => {
+                console.log(res);
+                commit('SET_ALL_COUNT', {
+                    count: parseInt(res.data[0]["count(*)"])
+                })
+            }).then(() => {
+                dispatch('LOAD_PROJECT_LIST');
+            }, (err) => {
+                console.log(err);
             })
         },
-        PAGE_CHANGED:function ({dispatch,commit},params) {
-            console.log('ENTER ACTION');
-            commit('SET_PAGE',{val:params});
+        PAGE_CHANGED: function({
+            dispatch,
+            commit
+        }, params) {
+            console.log(params);
+            commit('SET_PAGE', {
+                val: params
+            });
+            dispatch('LOAD_PROJECT_LIST');
         }
     },
     getters: {
         listProject: state => {
             return state.listProject;
         },
-        sWebName: state => {
+        searchWebName: state => {
             return state.searchWebName;
         },
-        sCity: state => {
+        searchCity: state => {
             return state.searchCity;
         },
-        sStartUrl: state => {
+        searchStartUrl: state => {
             return state.searchStartUrl;
         },
-        AllCount:state=>{
+        AllCount: state => {
             return state.AllCount;
         },
-        currentPage:state=>{
+        currentPage: state => {
             return state.currentPage;
         }
     },

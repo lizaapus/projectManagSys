@@ -6,13 +6,13 @@
         <div class="searchDiv">
           <el-form :inline="true" class="demo-form-inline">
             <el-form-item label="网站名称：">
-              <el-input v-model="sWebName" placeholder="网站名称"></el-input>
+              <input v-model="searchWebName" placeholder="网站名称" ></input>
             </el-form-item>
             <el-form-item label="所在城市：">
-              <el-input v-model="sCity" placeholder="城市"></el-input>
+              <input v-model="searchCity" placeholder="城市" ></input>
             </el-form-item>
             <el-form-item label="起始URL：">
-              <el-input v-model="sStartUrl" placeholder="URL"></el-input>
+              <input v-model="searchStartUrl" placeholder="URL" ></input>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="Search">查询</el-button>
@@ -21,7 +21,7 @@
               <el-button type="primary" @click="addNewItem">新建</el-button>
             </el-form-item>
           </el-form>
-          <el-table :data="listProject" border style="width:100%" stripe @row-dblclick="rowClick">
+          <el-table :data="listProject" border style="width:1030px" stripe @row-dblclick="rowClick">
             <!-- <el-table-column fixed prop="ID" label="ID" width="150"></el-table-column> -->
             <el-table-column prop="WebName" label="网站名" width="120"></el-table-column>
             <el-table-column prop="Section" label="网站栏目" width="120"></el-table-column>
@@ -30,28 +30,30 @@
             <el-table-column prop="StartUrl" label="起始Url" width="120"></el-table-column>
             <el-table-column prop="LastRunTime" label="上次运行时间" width="120"></el-table-column>
             <el-table-column prop="LatestTime" label="数据最新日期" width="120"></el-table-column>
-            <el-table-column prop="count" label="数据总数" width="140"></el-table-column>
+            <el-table-column prop="Count" label="数据总数" width="80"></el-table-column>
             <el-table-column fixed="right" label="操作" width="100">
               <template slot-scope="scope">
-                <el-button @click="detailPorject(scope.row)" type="text" size="normal">查看</el-button>
+                <!-- <el-button @click="detailPorject(scope.row)" type="text" size="normal">查看</el-button> -->
                 <el-button type="text" size="normal" @click="deleteItem(scope.row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
-           <el-pagination
-      @current-change="handleCurrentChange"
-      :current-page="currentPage"
-      :page-size="10"
-      layout="total, prev, pager, next, jumper"
-      :total="AllCount">
-    </el-pagination>
+          <div class="paginationC">
+            <el-pagination
+              @current-change="handleCurrentChange"
+              :current-page="currentPage"
+              :page-size="10"
+              layout="total, prev, pager, next, jumper"
+              :total="AllCount"
+            ></el-pagination>
+          </div>
+
           <el-dialog :visible.sync="centerDialogVisible" width="30%" center>
             <el-form
               ref="ruleForm"
               :model="form"
               label-width="110px"
               size="mini"
-              :rules="rules"
               class="demo-ruleForm"
             >
               <el-form-item label="网站名" prop="WebName">
@@ -71,10 +73,14 @@
               </el-form-item>
 
               <el-form-item label="上次运行时间" prop="LastRunTime">
-                <el-input v-model="form.LastRunTime"></el-input>
+                <el-date-picker
+                  placeholder="上次运行时间"
+                  v-model="form.LastRunTime"
+                  style="width: 100%;"
+                ></el-date-picker>
               </el-form-item>
               <el-form-item label="上次最新日期" prop="LatestTime">
-                <el-input v-model="form.LatestTime"></el-input>
+                <el-date-picker placeholder="上次最新日期" v-model="form.LatestTime" style="width: 100%;"></el-date-picker>
               </el-form-item>
               <el-form-item label="数据总数" prop="Count">
                 <el-input v-model="form.Count"></el-input>
@@ -91,7 +97,7 @@
             </el-form>
             <span slot="footer" class="dialog-footer">
               <el-button @click="centerDialogVisible = false">取 消</el-button>
-              <el-button type="primary" @click="AddOrUpdateItem">提 交</el-button>
+              <el-button type="primary" @click="Submit">提 交</el-button>
             </span>
           </el-dialog>
         </div>
@@ -103,13 +109,13 @@
 <script>
 import { mapGetters, mapActions } from "vuex";
 import { truncate } from "fs";
-import { brotliCompress } from 'zlib';
-import { type } from 'os';
+import { brotliCompress } from "zlib";
+import { type } from "os";
 export default {
   name: "center",
   data() {
     return {
-      type:0,
+      type: 0,
       centerDialogVisible: false,
       form: {
         id: "",
@@ -118,67 +124,91 @@ export default {
         Source: "souce1",
         City: "city1",
         StartUrl: "url1",
-        LastRunTime: "23",
-        LatestTime: "34",
+        LastRunTime: "",
+        LatestTime: "",
         Count: "12",
         RowXPath: "3er",
         LinkXPath: "ff",
         DateXPath: "ssf"
-      },
-      rules: {
-        WebName: [
-          { required: true, message: "请输入活动名称", trigger: "blur" },
-          { min: 3, max: 5, message: "长度在 3 到 5 个字符", trigger: "blur" }
-        ],
-        Section: [{ required: true, message: "请输入栏目", trigger: "blur" }],
-        Source: [{ required: true, message: "请输入来源", trigger: "blur" }],
-        City: [{ required: true, message: "请输入所在城市", trigger: "blur" }],
-        StartUrl: [
-          { required: true, message: "请选择起始Url", trigger: "blur" }
-        ],
-        LastRunTime: [
-          { required: true, message: "请输入上次运行时间", trigger: "blur" }
-        ],
-        LatestTime: [
-          { required: true, message: "请输入数据最新时间", trigger: "blur" }
-        ],
-        Count: [{ required: true, message: "请输入数据总量", trigger: "blur" }],
-        RowXPath: [
-          { required: true, message: "请输入RowXPath", trigger: "blur" }
-        ],
-        LinkXPath: [{ required: true, message: "LinkXPath", trigger: "blur" }],
-        DateXPath: [{ required: true, message: "DateXPath", trigger: "blur" }]
       }
-
+      // rules: {
+      //   WebName: [
+      //     { required: true, message: "请输入活动名称", trigger: "blur" },
+      //     { min: 3, max: 5, message: "长度在 3 到 5 个字符", trigger: "blur" }
+      //   ],
+      //   Section: [{ required: true, message: "请输入栏目", trigger: "blur" }],
+      //   Source: [{ required: true, message: "请输入来源", trigger: "blur" }],
+      //   City: [{ required: true, message: "请输入所在城市", trigger: "blur" }],
+      //   StartUrl: [
+      //     { required: true, message: "请选择起始Url", trigger: "blur" }
+      //   ],
+      //   LastRunTime: [
+      //     { required: true, message: "请输入上次运行时间", trigger: "blur" }
+      //   ],
+      //   LatestTime: [
+      //     { required: true, message: "请输入数据最新时间", trigger: "blur" }
+      //   ],
+      //   Count: [{ required: true, message: "请输入数据总量", trigger: "blur" }],
+      //   RowXPath: [
+      //     { required: true, message: "请输入RowXPath", trigger: "blur" }
+      //   ],
+      //   LinkXPath: [{ required: true, message: "LinkXPath", trigger: "blur" }],
+      //   DateXPath: [{ required: true, message: "DateXPath", trigger: "blur" }]
+      // }
     };
   },
   computed: {
-    ...mapGetters(["listProject", "sWebName", "sCity", "sStartUrl",'AllCount','currentPage'])
+    ...mapGetters(["listProject", "AllCount", "currentPage"]),
+    searchWebName: {
+      get() {
+        return this.$store.state.searchWebName;
+      },
+      set(value) {
+        this.$store.commit("SET_WENNAME", value);
+      }
+    },
+    searchCity: {
+      get() {
+        return this.$store.state.searchCity;
+      },
+      set(value) {
+        this.$store.commit("SET_CITY", value);
+      }
+    },
+    searchStartUrl: {
+      get() {
+        return this.$store.state.searchStartUrl;
+      },
+      set(value) {
+        this.$store.commit("SET_URL", value);
+      }
+    }
   },
   mounted: function() {
     this.$store.dispatch("LOAD_ALL_COUNT");
-    this.$store.dispatch("LOAD_PROJECT_LIST");
   },
   methods: {
     //按条件检索
     Search() {
-      this.$store.dispatch("", { amount: 10 });
+      this.$store.dispatch("SEARCH_PROJECTS");
     },
     //删除
     deleteItem(row) {
-      var item = row.ID;
+      console.log(row);
+      console.log("ENTER DELETE");
+      var item = row.id;
       this.$store.dispatch("DELETE_PROJECT", item);
     },
     //查看
     detailPorject(row) {
-      this.type =2;
-      console.log(row);
+      this.type = 2;
+      this.form = row;
       centerDialogVisible = true;
     },
     //双击修改
     rowClick(row, column, cell, event) {
-      this.type = 1;//1表示修改
-      console.log(row, column, cell, event);
+      this.type = 1;
+      this.form = row;
       this.centerDialogVisible = true;
     },
     addNewItem() {
@@ -186,7 +216,7 @@ export default {
       this.centerDialogVisible = true;
     },
     //添加
-    AddOrUpdateItem() {
+    Submit() {
       switch (this.type) {
         case 0:
           var id = "";
@@ -205,7 +235,7 @@ export default {
       this.centerDialogVisible = false;
     },
     handleCurrentChange(val) {
-      this.$store.dispatch('PAGE_CHANGED',val)
+      this.$store.dispatch("PAGE_CHANGED", val);
     }
   }
 };
@@ -216,14 +246,18 @@ export default {
   height: 100%;
 }
 .searchDiv {
-  margin-top: 130px;
-  text-align: center;
+  margin-top: 60px;
+  text-align: left;
 }
 .el-row {
   margin-bottom: 20px;
 }
 .el-col {
   border-radius: 4px;
+}
+.paginationC {
+  margin-top: 30px;
+  margin-bottom: 30px;
 }
 </style>
 
