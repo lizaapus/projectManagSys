@@ -9,7 +9,8 @@
           <el-dialog :visible.sync="batchAddDialog" width="70%" center title="批量导入数据">
             <div class="batchDiv">
               <label>批量数据：</label>
-              <el-input type="textarea" autosize placeholder="请输入内容" v-model="textarea1"></el-input>
+              <el-input type="textarea" autosize placeholder="请输入内容" v-model="batchString"></el-input>
+              <el-button type="primary" @click="formatBatch">格式化数据</el-button>
               <p v-html="tableHtml"></p>
             </div>
             <span slot="footer" class="dialog-footer">
@@ -27,7 +28,7 @@
               <input class="inputC" v-model="searchCity" placeholder="城市" />
             </el-form-item>
             <el-form-item label="起始URL：">
-              <input class="inputC" v-model="searchStartUrl" placeholder="URL" />>
+              <input class="inputC" v-model="searchStartUrl" placeholder="URL" />
             </el-form-item>
             <el-form-item label="数据最新时间">
               <el-date-picker placeholder="选择时间" v-model="sLatestTime" style="width: 100%;"></el-date-picker>
@@ -152,8 +153,8 @@ export default {
       type: 0,
       singleAddDialog: false,
       batchAddDialog: false,
-      tableHtml:
-        "<table border='1px' style='word-wrap:break-word;word-break:break-all;table-layout:fixed' cellspacing='0'><tr><td style='width: 200px;'>id</td><td style='width: 200px;'>Url</td><td style='width: 200px;'>企业全称</td><td style='width: 200px;'>公司简介</td><td style='width: 200px;'>经营方式</td><td style='width: 200px;'>所在地</td><td style='width: 200px;'>应用领域</td><td style='width: 200px;'>产品列表</td><td style='width: 200px;'>地址</td><td style='width: 200px;'>联系人</td><td style='width: 200px;'>电话</td><td style='width: 200px;'>手机</td><td style='width: 200px;'>邮箱</td><td style='width: 200px;'>传真</tr><tr><td style='width: 200px;'>5cc7dc490ac9cba32f90f4e1</td><td style='width: 200px;'>http://www.3618med.com/company/21347/</td><td style='width: 200px;'>北京世通康泰眼科仪器有限公司</td><td style='width: 200px;'> </td><td style='width: 200px;'>全国总代理</td><td style='width: 200px;'>北京</td><td style='width: 200px;'></td><td style='width: 200px;'></td><td style='width: 200px;'></td><td style='width: 200px;'>3618客服</td><td style='width: 200px;'></td><td style='width: 200px;'></td><td style='width: 200px;'>b9888@126.com</td><td style='width: 200px;'></tr></table>",
+      batchString:'',
+      tableHtml:"",
       form: {
         id: "",
         WebName: "web1",
@@ -207,7 +208,7 @@ export default {
     }
   },
   mounted: function() {
-    this.$store.dispatch("LOAD_ALL_COUNT");
+    //this.$store.dispatch("LOAD_ALL_COUNT");
   },
   methods: {
     //按条件检索
@@ -257,6 +258,7 @@ export default {
     handleCurrentChange(val) {
       this.$store.dispatch("PAGE_CHANGED", val);
     },
+    //刷新列表
     RefreshList() {
       this.$store.dispatch("PAGE_CHANGED", this.currentPage);
     },
@@ -272,6 +274,21 @@ export default {
 
       var uuid = s.join("");
       return uuid;
+    },
+    formatBatch(){
+      //console.log("enter1");
+      var str1 = this.batchString.replace(/\n/g, "</td></tr><tr><td width='200px'>");
+      console.log(str1);
+      str1 = str1.replace(/\t/g, "</td><td width='200px'>");
+      str1 = "<table border='1px' style='word-wrap:break-word;word-break:break-all;table-layout:fixed' cellspacing='0'><tr><td width='200px'>"+str1;
+      console.log(str1);
+      console.log(str1.length);
+      this.tableHtml = str1.substr(0,str1.length-23) + "</table>";
+      console.log(this.tableHtml);
+      //console.log(this.batchString.split("\t"))
+    },
+    BatchSubmit(){
+
     }
   }
 };
@@ -284,10 +301,12 @@ export default {
 
 .addDiv {
   margin-top: 100px;
+  margin-left:40px;
   text-align: left;
 }
 .searchDiv {
   margin-top: 10px;
+  margin-left:40px;
   text-align: left;
 }
 .el-row {
@@ -304,7 +323,6 @@ export default {
   width: 150px;
   height: 25px;
   border-radius: 5%;
-  border-start-end-radius: 5%;
 }
 .block {
   width: 20px;
@@ -319,14 +337,7 @@ export default {
 .el-input__prefix {
   visibility: hidden;
 }
-.tableP {
-  border: "1px";
-  word-wrap: break-word;
-  word-break: break-all;
-  table-layout: fixed;
-}
-.tableP td {
-  width: 200px;
+.batchDiv{
 }
 </style>
 
