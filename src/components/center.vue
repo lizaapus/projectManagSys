@@ -1,39 +1,60 @@
 <template>
-  <div class="mainC">
+  <el-form class="mainC">
     <el-col :gutter="100">
       <el-col :span="2"></el-col>
       <el-col :span="22">
-        <div class="searchDiv">
+        <div class="addDiv">
+          <el-button type="primary" @click="addNewItem">新建</el-button>
+          <el-button type="primary" @click="addBatchItems">批量添加</el-button>
+          <el-dialog :visible.sync="batchAddDialog" width="70%" center title="批量导入数据">
+            <div class="batchDiv">
+              <label>批量数据：</label>
+              <el-input type="textarea" autosize placeholder="请输入内容" v-model="textarea1"></el-input>
+              <p v-html="tableHtml"></p>
+            </div>
+            <span slot="footer" class="dialog-footer">
+              <el-button @click="batchAddDialog = false">取 消</el-button>
+              <el-button type="primary" @click="BatchSubmit">批量导入</el-button>
+            </span>
+          </el-dialog>
+        </div>
+        <el-form class="searchDiv">
           <el-form :inline="true" class="demo-form-inline">
             <el-form-item label="网站名称：">
-              <input v-model="searchWebName" placeholder="网站名称" ></input>
+              <input class="inputC" v-model="searchWebName" placeholder="网站名称" />
             </el-form-item>
             <el-form-item label="所在城市：">
-              <input v-model="searchCity" placeholder="城市" ></input>
+              <input class="inputC" v-model="searchCity" placeholder="城市" />
             </el-form-item>
             <el-form-item label="起始URL：">
-              <input v-model="searchStartUrl" placeholder="URL" ></input>
+              <input class="inputC" v-model="searchStartUrl" placeholder="URL" />>
+            </el-form-item>
+            <el-form-item label="数据最新时间">
+              <el-date-picker placeholder="选择时间" v-model="sLatestTime" style="width: 100%;"></el-date-picker>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="Search">查询</el-button>
             </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="addNewItem">新建</el-button>
-            </el-form-item>
           </el-form>
-          <el-table :data="listProject" border style="width:1030px" stripe @row-dblclick="rowClick">
-            <!-- <el-table-column fixed prop="ID" label="ID" width="150"></el-table-column> -->
+          <el-table
+            :data="listProject"
+            border
+            style="width:1190px"
+            stripe
+            @row-dblclick="rowClick"
+            size="medium"
+          >
             <el-table-column prop="WebName" label="网站名" width="120"></el-table-column>
             <el-table-column prop="Section" label="网站栏目" width="120"></el-table-column>
             <el-table-column prop="Source" label="来源" width="120"></el-table-column>
             <el-table-column prop="City" label="城市" width="120"></el-table-column>
             <el-table-column prop="StartUrl" label="起始Url" width="120"></el-table-column>
-            <el-table-column prop="LastRunTime" label="上次运行时间" width="120"></el-table-column>
-            <el-table-column prop="LatestTime" label="数据最新日期" width="120"></el-table-column>
+            <el-table-column prop="LastRunTime" label="上次运行时间" width="200"></el-table-column>
+            <el-table-column prop="LatestTime" label="数据最新日期" width="200"></el-table-column>
             <el-table-column prop="Count" label="数据总数" width="80"></el-table-column>
             <el-table-column fixed="right" label="操作" width="100">
               <template slot-scope="scope">
-                <!-- <el-button @click="detailPorject(scope.row)" type="text" size="normal">查看</el-button> -->
+                <el-button @click="UpdateItem(scope.row)" type="text" size="normal">编辑</el-button>
                 <el-button type="text" size="normal" @click="deleteItem(scope.row)">删除</el-button>
               </template>
             </el-table-column>
@@ -48,7 +69,7 @@
             ></el-pagination>
           </div>
 
-          <el-dialog :visible.sync="centerDialogVisible" width="30%" center>
+          <el-dialog :visible.sync="singleAddDialog" width="30%" center @close="RefreshList">
             <el-form
               ref="ruleForm"
               :model="form"
@@ -74,13 +95,19 @@
 
               <el-form-item label="上次运行时间" prop="LastRunTime">
                 <el-date-picker
+                  disabled
                   placeholder="上次运行时间"
                   v-model="form.LastRunTime"
                   style="width: 100%;"
                 ></el-date-picker>
               </el-form-item>
               <el-form-item label="上次最新日期" prop="LatestTime">
-                <el-date-picker placeholder="上次最新日期" v-model="form.LatestTime" style="width: 100%;"></el-date-picker>
+                <el-date-picker
+                  placeholder="上次最新日期"
+                  v-model="form.LatestTime"
+                  style="width: 100%;"
+                  disabled
+                ></el-date-picker>
               </el-form-item>
               <el-form-item label="数据总数" prop="Count">
                 <el-input v-model="form.Count"></el-input>
@@ -94,16 +121,23 @@
               <el-form-item label="DateXPath" prop="DateXPath">
                 <el-input v-model="form.DateXPath"></el-input>
               </el-form-item>
+              <el-form-item label="备注" prop="DateXPath">
+                <el-input
+                  v-model="form.Remark"
+                  type="textarea"
+                  :autosize="{ minRows: 2, maxRows: 4}"
+                ></el-input>
+              </el-form-item>
             </el-form>
             <span slot="footer" class="dialog-footer">
-              <el-button @click="centerDialogVisible = false">取 消</el-button>
+              <el-button @click="singleAddDialog = false">取 消</el-button>
               <el-button type="primary" @click="Submit">提 交</el-button>
             </span>
           </el-dialog>
-        </div>
+        </el-form>
       </el-col>
     </el-col>
-  </div>
+  </el-form>
 </template>
 
 <script>
@@ -116,7 +150,10 @@ export default {
   data() {
     return {
       type: 0,
-      centerDialogVisible: false,
+      singleAddDialog: false,
+      batchAddDialog: false,
+      tableHtml:
+        "<table border='1px' style='word-wrap:break-word;word-break:break-all;table-layout:fixed' cellspacing='0'><tr><td style='width: 200px;'>id</td><td style='width: 200px;'>Url</td><td style='width: 200px;'>企业全称</td><td style='width: 200px;'>公司简介</td><td style='width: 200px;'>经营方式</td><td style='width: 200px;'>所在地</td><td style='width: 200px;'>应用领域</td><td style='width: 200px;'>产品列表</td><td style='width: 200px;'>地址</td><td style='width: 200px;'>联系人</td><td style='width: 200px;'>电话</td><td style='width: 200px;'>手机</td><td style='width: 200px;'>邮箱</td><td style='width: 200px;'>传真</tr><tr><td style='width: 200px;'>5cc7dc490ac9cba32f90f4e1</td><td style='width: 200px;'>http://www.3618med.com/company/21347/</td><td style='width: 200px;'>北京世通康泰眼科仪器有限公司</td><td style='width: 200px;'> </td><td style='width: 200px;'>全国总代理</td><td style='width: 200px;'>北京</td><td style='width: 200px;'></td><td style='width: 200px;'></td><td style='width: 200px;'></td><td style='width: 200px;'>3618客服</td><td style='width: 200px;'></td><td style='width: 200px;'></td><td style='width: 200px;'>b9888@126.com</td><td style='width: 200px;'></tr></table>",
       form: {
         id: "",
         WebName: "web1",
@@ -129,32 +166,9 @@ export default {
         Count: "12",
         RowXPath: "3er",
         LinkXPath: "ff",
-        DateXPath: "ssf"
+        DateXPath: "ssf",
+        Remark: ""
       }
-      // rules: {
-      //   WebName: [
-      //     { required: true, message: "请输入活动名称", trigger: "blur" },
-      //     { min: 3, max: 5, message: "长度在 3 到 5 个字符", trigger: "blur" }
-      //   ],
-      //   Section: [{ required: true, message: "请输入栏目", trigger: "blur" }],
-      //   Source: [{ required: true, message: "请输入来源", trigger: "blur" }],
-      //   City: [{ required: true, message: "请输入所在城市", trigger: "blur" }],
-      //   StartUrl: [
-      //     { required: true, message: "请选择起始Url", trigger: "blur" }
-      //   ],
-      //   LastRunTime: [
-      //     { required: true, message: "请输入上次运行时间", trigger: "blur" }
-      //   ],
-      //   LatestTime: [
-      //     { required: true, message: "请输入数据最新时间", trigger: "blur" }
-      //   ],
-      //   Count: [{ required: true, message: "请输入数据总量", trigger: "blur" }],
-      //   RowXPath: [
-      //     { required: true, message: "请输入RowXPath", trigger: "blur" }
-      //   ],
-      //   LinkXPath: [{ required: true, message: "LinkXPath", trigger: "blur" }],
-      //   DateXPath: [{ required: true, message: "DateXPath", trigger: "blur" }]
-      // }
     };
   },
   computed: {
@@ -182,6 +196,14 @@ export default {
       set(value) {
         this.$store.commit("SET_URL", value);
       }
+    },
+    sLatestTime: {
+      get() {
+        return this.$store.state.searchLatestTime;
+      },
+      set(value) {
+        this.$store.commit("SET_SEARCH_LatestTime", value);
+      }
     }
   },
   mounted: function() {
@@ -199,43 +221,57 @@ export default {
       var item = row.id;
       this.$store.dispatch("DELETE_PROJECT", item);
     },
-    //查看
-    detailPorject(row) {
-      this.type = 2;
-      this.form = row;
-      centerDialogVisible = true;
-    },
     //双击修改
     rowClick(row, column, cell, event) {
       this.type = 1;
       this.form = row;
-      this.centerDialogVisible = true;
+      this.singleAddDialog = true;
+    },
+    UpdateItem(row) {
+      this.type = 1;
+      this.form = row;
+      this.singleAddDialog = true;
     },
     addNewItem() {
       this.type = 0;
-      this.centerDialogVisible = true;
+      this.singleAddDialog = true;
+    },
+    addBatchItems() {
+      this.type = 0;
+      this.batchAddDialog = true;
     },
     //添加
     Submit() {
       switch (this.type) {
         case 0:
-          var id = "";
-          while (id.length < 20) {
-            id += Math.random()
-              .toString(36)
-              .substr(2);
-          }
-          this.form.id = id;
+          this.form.id = this.uuid();
+          alert(this.form.id);
           this.$store.dispatch("ADD_NEW_PROJECT", this.form);
           break;
         case 1:
           this.$store.dispatch("UPDATE_PROJECT", this.form);
           break;
       }
-      this.centerDialogVisible = false;
+      this.singleAddDialog = false;
     },
     handleCurrentChange(val) {
       this.$store.dispatch("PAGE_CHANGED", val);
+    },
+    RefreshList() {
+      this.$store.dispatch("PAGE_CHANGED", this.currentPage);
+    },
+    uuid() {
+      var s = [];
+      var hexDigits = "0123456789abcdef";
+      for (var i = 0; i < 36; i++) {
+        s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+      }
+      s[14] = "4"; // bits 12-15 of the time_hi_and_version field to 0010
+      s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1); // bits 6-7 of the clock_seq_hi_and_reserved to 01
+      s[8] = s[13] = s[18] = s[23] = "-";
+
+      var uuid = s.join("");
+      return uuid;
     }
   }
 };
@@ -245,8 +281,13 @@ export default {
   width: 100%;
   height: 100%;
 }
+
+.addDiv {
+  margin-top: 100px;
+  text-align: left;
+}
 .searchDiv {
-  margin-top: 60px;
+  margin-top: 10px;
   text-align: left;
 }
 .el-row {
@@ -258,6 +299,34 @@ export default {
 .paginationC {
   margin-top: 30px;
   margin-bottom: 30px;
+}
+.inputC {
+  width: 150px;
+  height: 25px;
+  border-radius: 5%;
+  border-start-end-radius: 5%;
+}
+.block {
+  width: 20px;
+}
+.el-date-editor.el-input,
+.el-date-editor.el-input__inner {
+  width: 175px;
+}
+.el-input__icon el-icon-time {
+  visibility: hidden;
+}
+.el-input__prefix {
+  visibility: hidden;
+}
+.tableP {
+  border: "1px";
+  word-wrap: break-word;
+  word-break: break-all;
+  table-layout: fixed;
+}
+.tableP td {
+  width: 200px;
 }
 </style>
 

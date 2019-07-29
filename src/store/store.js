@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import axios from 'axios';
+import moment from 'moment';
 import {
     Alert
 } from 'element-ui';
@@ -13,6 +14,7 @@ export default new Vuex.Store({
         searchWebName: '',
         searchCity: '',
         searchStartUrl: '',
+        searchLatestTime: '',
         AllCount: 0,
         startindex: 0,
         offsite: 10,
@@ -23,11 +25,19 @@ export default new Vuex.Store({
         SET_PROJECT_LIST: (state, {
             projectlist
         }) => {
+            var i = 0;
+            projectlist.forEach(element => {
+                projectlist[i].LastRunTime = element.LastRunTime == '0000-00-00 00:00:00' || element.LastRunTime == '' || element.LastRunTime == null ? "" : moment(element.LastRunTime).format('YYYY-MM-DD HH:mm:ss');
+                projectlist[i].LatestTime = element.LatestTime == '0000-00-00 00:00:00' || element.LatestTime == '' || element.LatestTime == null ? "" : moment(element.LatestTime).format('YYYY-MM-DD HH:mm:ss');
+                i++;
+            });
             state.listProject = projectlist
         },
         SET_ALL_COUNT: (state, {
             count
         }) => {
+            if (count < (state.currentPage - 1) * 10)
+                state.currentPage = 1;
             state.AllCount = count;
             state.startindex = (state.currentPage - 1) * 10;
             state.offsite = state.currentPage * 10 > state.AllCount ? state.AllCount : 10;
@@ -47,6 +57,9 @@ export default new Vuex.Store({
         },
         SET_URL(state, val) {
             state.searchStartUrl = val;
+        },
+        SET_SEARCH_LatestTime(state, val) {
+            state.searchLatestTime = val;
         }
     },
     actions: {
@@ -73,7 +86,7 @@ export default new Vuex.Store({
             dispatch,
             commit
         }) {
-            if (state.searchWebName == '' && state.searchCity == '' && state.searchStartUrl == '') {
+            if (state.searchWebName == '' && state.searchCity == '' && state.searchStartUrl == '' && (state.searchLatestTime == '' || state.searchLatestTime == null)) {
                 var params = {
                     startIndex: state.startindex,
                     offsite: state.offsite
@@ -88,6 +101,7 @@ export default new Vuex.Store({
                     searchWebName: state.searchWebName,
                     searchCity: state.searchCity,
                     searchStartUrl: state.searchStartUrl,
+                    searchLatestTime: state.searchLatestTime,
                     startIndex: state.startindex,
                     offsite: state.offsite
                 };
@@ -131,11 +145,11 @@ export default new Vuex.Store({
             dispatch,
             commit,
         }) {
-            console.log('search enter vuex');
             var params = {
                 searchWebName: state.searchWebName,
                 searchCity: state.searchCity,
                 searchStartUrl: state.searchStartUrl,
+                searchLatestTime: state.searchLatestTime,
                 startIndex: state.startindex,
                 offsite: state.offsite
             };
@@ -154,7 +168,6 @@ export default new Vuex.Store({
             dispatch,
             commit
         }, params) {
-            console.log(params);
             commit('SET_PAGE', {
                 val: params
             });

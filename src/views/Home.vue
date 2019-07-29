@@ -1,13 +1,13 @@
 <template>
   <el-row :gutter="10">
-    <el-col :xs="6" :sm="6" :md="6" :lg="3" :xl="3">
+    <el-col :xs="6" :sm="6" :md="6" :lg="3" :xl="4">
       <leftNav msg="Welcome to Your Vue.js App" />
     </el-col>
     <el-col :xs="16" :sm="16" :md="12" :lg="18" :xl="18">
       <center></center>
     </el-col>
-    <el-col :xs="2" :sm="2" :md="6" :lg="3" :xl="3">
-      <right></right>
+    <el-col :xs="2" :sm="2" :md="6" :lg="3" :xl="2">
+      <!-- <right></right> -->
     </el-col>
   </el-row>
 </template>
