@@ -3,8 +3,8 @@ import Vuex from 'vuex'
 import axios from 'axios';
 import moment from 'moment';
 import {
-    Alert
-} from 'element-ui';
+    stat
+} from 'fs';
 
 Vue.use(Vuex)
 
@@ -19,16 +19,32 @@ export default new Vuex.Store({
         startindex: 0,
         offsite: 10,
         currentPage: 1,
+        ProvinceList: [],
+        DataList: [],
+        searchedId: "",
+        DataCount: 0,
+        DataStartIndex: 0,
+        DataOffsite: 10,
+        DataCurrentPage: 1,
     },
-
     mutations: {
+        SET_PROVINCE_LIST: (state, {
+            provincelist
+        }) => {
+            state.ProvinceList = provincelist
+        },
         SET_PROJECT_LIST: (state, {
             projectlist
         }) => {
             var i = 0;
             projectlist.forEach(element => {
+                state.ProvinceList.forEach(pelement => {
+                    if (pelement.省市代码 == projectlist[i].CityCode) {
+                        projectlist[i].CityCode = pelement.省市名称;
+                    }
+                });
                 projectlist[i].LastRunTime = element.LastRunTime == '0000-00-00 00:00:00' || element.LastRunTime == '' || element.LastRunTime == null ? "" : moment(element.LastRunTime).format('YYYY-MM-DD HH:mm:ss');
-                projectlist[i].LatestTime = element.LatestTime == '0000-00-00 00:00:00' || element.LatestTime == '' || element.LatestTime == null ? "" : moment(element.LatestTime).format('YYYY-MM-DD HH:mm:ss');
+                projectlist[i].LastDataTime = element.LastDataTime == '0000-00-00 00:00:00' || element.LastDataTime == '' || element.LastDataTime == null ? "" : moment(element.LastDataTime).format('YYYY-MM-DD HH:mm:ss');
                 i++;
             });
             state.listProject = projectlist
@@ -49,6 +65,38 @@ export default new Vuex.Store({
             state.startindex = (val - 1) * 10;
             state.offsite = 10 > (state.AllCount - (val - 1) * 10) ? (state.AllCount - (val - 1) * 10) : 10;
         },
+        SET_SEARCHID: (state, {
+            val
+        }) => {
+            state.searchedId = val;
+        },
+        SET_DATA_PAGE: (state, {
+            val
+        }) => {
+            state.DataCurrentPage = val;
+            state.DataStartIndex = (val - 1) * 10;
+            state.DataOffsite = 10 > (state.DataCount - (val - 1) * 10) ? (state.DataCount - (val - 1) * 10) : 10;
+        },
+        SET_DATA_COUNT: (state, {
+            count
+        }) => {
+            if (count < (state.DataCurrentPage - 1) * 10)
+                state.DataCurrentPage = 1;
+            state.DataCount = count;
+            state.DataStartIndex = (state.DataCurrentPage - 1) * 10;
+            state.DataOffsite = state.DataCurrentPage * 10 > state.DataCount ? state.DataCount : 10;
+        },
+        SET_DATALIST: (state, {
+            datalist
+        }) => {
+            var i = 0;
+            datalist.forEach(element => {
+                // datalist[i].LastRunTime = element.LastRunTime == '0000-00-00 00:00:00' || element.LastRunTime == '' || element.LastRunTime == null ? "" : moment(element.LastRunTime).format('YYYY-MM-DD ');
+                datalist[i].PublishDate = element.PublishDate == '0000-00-00 00:00:00' || element.PublishDate == '' || element.PublishDate == null ? "" : moment(element.PublishDate).format('YYYY-MM-DD');
+                i++;
+            });
+            state.DataList = datalist;
+        },
         SET_WENNAME(state, val) {
             state.searchWebName = val
         },
@@ -60,9 +108,27 @@ export default new Vuex.Store({
         },
         SET_SEARCH_LatestTime(state, val) {
             state.searchLatestTime = val;
-        }
+        },
+
     },
     actions: {
+        LOAD_PROVINCE: function({
+            dispatch,
+            commit
+        }) {
+            axios.get('/api/project/getProvince').then((res) => {
+                //console.log(res.status);
+                commit('SET_PROVINCE_LIST', {
+                    provincelist: res.data
+                });
+            }, (err) => {
+                console.log(err);
+            }).then(() => {
+                dispatch("LOAD_ALL_COUNT")
+            }, (err) => {
+                console.log(err);
+            })
+        },
         //获取记录总数
         LOAD_ALL_COUNT: function({
             dispatch,
@@ -70,7 +136,8 @@ export default new Vuex.Store({
         }) {
             axios.get('/api/project/getItemsNumb').then((res) => {
                 commit('SET_ALL_COUNT', {
-                    count: parseInt(res.data[0]["count(*)"])
+
+                    count: parseInt(res.data)
                 });
             }, (err) => {
                 console.log(err);
@@ -92,6 +159,7 @@ export default new Vuex.Store({
                     offsite: state.offsite
                 };
                 axios.post('/api/project/getLimitItem', params).then((res) => {
+                    //.log(res.data)
                     commit('SET_PROJECT_LIST', {
                         projectlist: res.data
                     })
@@ -113,20 +181,29 @@ export default new Vuex.Store({
             }
         },
         //增加新项目
-        ADD_NEW_PROJECT: function({
+        ADD_NEW_PROJECT({
             dispatch,
             commit
         }, params) {
-            axios.post('/api/project/addProject', params).then((res) => {
-                dispatch('SEARCH_PROJECTS');
+            return new Promise((resolve, reject) => {
+                axios.post('/api/project/addProject', params).then((res) => {
+                    //console.log(res);
+                    //dispatch('SEARCH_PROJECTS');
+                    if (res.status == 200) {
+                        resolve(0)
+                    } else {
+                        reject(1)
+                    }
+                })
             })
+
         },
         //删除指定项目
         DELETE_PROJECT: function({
             dispatch,
             commit
         }, item) {
-            axios.delete('api/project/deleteItem?id=' + item).then((res) => {
+            axios.delete('api/project/deleteItem?_id=' + item).then((res) => {
                 dispatch('SEARCH_PROJECTS');
             })
         },
@@ -154,9 +231,9 @@ export default new Vuex.Store({
                 offsite: state.offsite
             };
             axios.post('api/project/searchItemsCount', params).then((res) => {
-                console.log(res);
+                //console.log(res);
                 commit('SET_ALL_COUNT', {
-                    count: parseInt(res.data[0]["count(*)"])
+                    count: parseInt(res.data)
                 })
             }).then(() => {
                 dispatch('LOAD_PROJECT_LIST');
@@ -164,6 +241,7 @@ export default new Vuex.Store({
                 console.log(err);
             })
         },
+        //cpro翻页
         PAGE_CHANGED: function({
             dispatch,
             commit
@@ -172,6 +250,66 @@ export default new Vuex.Store({
                 val: params
             });
             dispatch('LOAD_PROJECT_LIST');
+        },
+
+        //获取data记录总数
+        LOAD_DATA_COUNT: function({
+            state,
+            dispatch,
+            commit
+        }) {
+            var params = {
+                ParseId: state.searchedId,
+            }
+            axios.post('/api/project/getDataItemsNumb', params).then((res) => {
+                commit('SET_DATA_COUNT', {
+                    count: parseInt(res.data)
+                });
+            }, (err) => {
+                console.log(err);
+            }).then(() => {
+                dispatch('SEARCH_DATAS');
+            }, (err) => {
+                console.log(err);
+            })
+        },
+
+        //获取指定id的data
+        SEARCH_DATAS: function({
+            state,
+            dispatch,
+            commit
+        }) {
+
+            var params = {
+                ParseId: state.searchedId,
+                startIndex: state.DataStartIndex,
+                offsite: state.DataOffsite
+            };
+            axios.post('/api/project/getDataList', params).then((res) => {
+                //.log(res.data)
+                commit('SET_DATALIST', {
+                    datalist: res.data
+                });
+            });
+        },
+        //data翻页
+        DATA_PAGE_CHANGED: function({
+            dispatch,
+            commit
+        }, params) {
+            commit('SET_DATA_PAGE', {
+                val: params
+            });
+            dispatch('SEARCH_DATAS');
+        },
+        //设置searchId
+        SEARCHID_CHANGED: function({
+            commit
+        }, params) {
+            commit('SET_SEARCHID', {
+                val: params
+            });
         }
     },
     getters: {
@@ -192,6 +330,18 @@ export default new Vuex.Store({
         },
         currentPage: state => {
             return state.currentPage;
+        },
+        ProvinceList: state => {
+            return state.ProvinceList;
+        },
+        DataCount: state => {
+            return state.DataCount;
+        },
+        DataCurrentPage: state => {
+            return state.DataCurrentPage;
+        },
+        DataList: state => {
+            return state.DataList;
         }
     },
 })

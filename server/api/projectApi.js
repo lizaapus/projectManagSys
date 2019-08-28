@@ -9,16 +9,27 @@ var $sql = require('../sql');
 var conn = mysql.createConnection(models.mysql);
 conn.connect();
 var jsonWrite = function(res, ret) {
-    if (typeof ret === 'undefined') {
-        res.json({
-            code: '1',
-            msg: '操作失败'
-        })
-    } else {
-        res.json(ret);
+        if (typeof ret === 'undefined') {
+            res.json({
+                code: '1',
+                msg: '操作失败'
+            })
+        } else {
+            res.json(ret);
+        }
     }
-}
-
+    //获取省市信息
+router.get('/getProvince', (req, res) => {
+    var sql = $sql.projectSql.getProvince;
+    conn.query(sql, function(err, result) {
+        if (err) {
+            console.log(err);
+        }
+        if (result) {
+            jsonWrite(res, result);
+        }
+    })
+});
 //获取指定数据库记录
 router.post('/getLimitItem', (req, res) => {
     var params = req.body;
@@ -32,7 +43,6 @@ router.post('/getLimitItem', (req, res) => {
             jsonWrite(res, result);
         }
     })
-
 });
 //增加项目
 router.post('/addProject', (req, res) => {
@@ -43,13 +53,14 @@ router.post('/addProject', (req, res) => {
         params.WebName,
         params.Section,
         params.Source,
-        params.City,
-        params.StartUrl,
+        params.CityCode,
+        params.Url,
         params.LastRunTime == '' || params.LastRunTime == null ? null : moment(params.LastRunTime).format('YYYY-MM-DD HH:mm:ss'),
         params.LatestTime == '' || params.LatestTime == null ? null : moment(params.LatestTime).format('YYYY-MM-DD HH:mm:ss'),
         parseInt(params.Count),
         params.RowXPath,
         params.LinkXPath,
+        params.TitleXPath,
         params.DateXPath,
         params.Remark
     ], function(err, result) {
@@ -76,21 +87,20 @@ router.get('/getItemsNumb', (req, res) => {
 });
 //更新指定item
 router.post('/updateItem', (req, res) => {
-    console.log(req.body);
     var sql = $sql.projectSql.updateItem;
     var params = req.body;
-    console.log(params.LastRunTime);
     conn.query(sql, [
         params.WebName,
         params.Section,
         params.Source,
-        params.City,
-        params.StartUrl,
+        params.CityCode,
+        params.Url,
         params.LastRunTime == '' || params.LastRunTime == null || params.LastRunTime == '0000-00-00 00:00:00' ? '0000-00-00 00:00:00' : moment(params.LastRunTime).format('YYYY-MM-DD HH:mm:ss'),
         params.LatestTime == '' || params.LatestTime == null || params.LastRunTime == '0000-00-00 00:00:00' ? '0000-00-00 00:00:00' : moment(params.LatestTime).format('YYYY-MM-DD HH:mm:ss'),
         parseInt(params.Count),
         params.RowXPath,
         params.LinkXPath,
+        params.TitleXPath,
         params.DateXPath,
         params.Remark,
         params.id,
@@ -383,6 +393,7 @@ router.post('/searchItemsCount', (req, res) => {
         // }
 
     }),
+    //查询符合条件的指定item
     router.post('/searchItems', (req, res) => {
         console.log(req.body);
         var params = req.body;

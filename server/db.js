@@ -6,5 +6,10 @@ module.exports = {
         password: 'cnkittod',
         database: 'test',
         port: '3306'
+    },
+    mongodb: {
+        host: 'mongodb://192.168.106.56:27017/CPRO',
+        mainColl: 'Parser',
+        provinceCol: 'Province',
     }
 }
