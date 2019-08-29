@@ -8,15 +8,27 @@ const ProvinceModel = model.ProvinceModel
 const CPROModel = model.CPROModel
 const DataModel = model.DataModel
 
-var jsonWrite = function(res, ret) {
-    if (typeof ret === 'error') {
+var jsonWrite = function(res, ret, returntype) {
+    if (returntype) {
         res.json({
-            code: '1',
-            msg: '操作失败：' + ret
+            code: 0,
+            msg: 'success',
+            data: ret
         })
     } else {
-        res.json(ret);
+        res.json({
+            code: ret.code,
+            msg: ret.name + '：' + ret.errmsg
+        })
     }
+    // if (typeof ret === 'error') {
+    //     res.json({
+    //         code: '1',
+    //         msg: '操作失败：' + ret
+    //     })
+    // } else {
+    //     res.json(ret);
+    // }
 };
 //增加数据库记录
 router.post('/addProject', (req, res) => {
@@ -30,6 +42,8 @@ router.post('/addProject', (req, res) => {
         LastRunTime: params.LastRunTime == '' || params.LastRunTime == null ? null : moment(params.LastRunTime).format('YYYY-MM-DD HH:mm:ss'),
         LastDataTime: params.LastDataTime == '' || params.LastDataTime == null ? null : moment(params.LastDataTime).format('YYYY-MM-DD HH:mm:ss'),
         DataCount: parseInt(params.DataCount),
+        IsParsed: Boolean(params.IsParsed),
+        NeedRender: Boolean(params.NeedRender),
         RowXPath: params.RowXPath,
         LinkXPath: params.LinkXPath,
         TitleXPath: params.TitleXPath,
@@ -37,12 +51,22 @@ router.post('/addProject', (req, res) => {
         Remark: params.Remark
     })
     CPROEntity.save(function(error, doc) {
+        // if (error) {
+        //     res.json({
+        //         code: error.code,
+        //         msg: error.name + '：' + error.errmsg
+        //     })
+        // } else {
+        //     res.json({
+        //         code: 0,
+        //         msg: 'success',
+        //         data: doc
+        //     })
+        // }
         if (error) {
-            console.log(error.errmsg);
-            jsonWrite(res, error.errmsg)
+            jsonWrite(res, error, false)
         } else {
-            console.log(doc);
-            jsonWrite(res, doc);
+            jsonWrite(res, doc, true);
         }
     });
 });
@@ -51,12 +75,16 @@ router.get('/getProvince', (req, res) => {
     ProvinceModel.find({
         '层级': "2"
     }, (err, data) => {
+        // if (err) {
+        //     return
+        // }
+        // if (data) {
+        //     jsonWrite(res, data);
+        // }
         if (err) {
-            return
-        }
-        if (data) {
-
-            jsonWrite(res, data);
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, data, true);
         }
     })
 });
@@ -69,12 +97,17 @@ router.post('/getLimitItem', (req, res) => {
         skip: parseInt(params.startIndex)
     });
     query.exec(function(err, docs) {
+        // if (err) {
+        //     console.log(err);
+        //     return
+        // }
+        // if (docs) {
+        //     jsonWrite(res, docs);
+        // }
         if (err) {
-            console.log(err);
-            return
-        }
-        if (docs) {
-            jsonWrite(res, docs);
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, docs, true);
         }
     });
 });
@@ -84,11 +117,16 @@ router.post('/getLimitItem', (req, res) => {
 //获取无条件下数据库表item总数
 router.get('/getItemsNumb', (req, res) => {
     CPROModel.countDocuments({}, function(err, count) {
+        // if (err) {
+        //     console.log(err);
+        // }
+        // if (count) {
+        //     jsonWrite(res, count);
+        // }
         if (err) {
-            console.log(err);
-        }
-        if (count) {
-            jsonWrite(res, count);
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, count, true);
         }
     })
 });
@@ -111,11 +149,16 @@ router.post('/updateItem', (req, res) => {
         DateXPath: params.DateXPath,
         Remark: params.Remark,
     }, function(err, data) {
+        // if (err) {
+        //     console.log(err);
+        // }
+        // if (data) {
+        //     jsonWrite(res, data);
+        //     }
         if (err) {
-            console.log(err);
-        }
-        if (data) {
-            jsonWrite(res, data);
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, data, true);
         }
     })
 });
@@ -124,11 +167,17 @@ router.post('/updateItem', (req, res) => {
 router.delete('/deleteItem', (req, res) => {
     var params = req.query;
     CPROModel.findByIdAndRemove(params._id, (error, data) => {
+        // if (error) {
+
+        //     console.log(error);
+        //     throw error;
+        // } else {
+        //     jsonWrite(res, data);
+        // }
         if (error) {
-            console.log(error);
-            throw error;
+            jsonWrite(res, error, false)
         } else {
-            jsonWrite(res, data);
+            jsonWrite(res, data, true);
         }
     });
 });
@@ -143,11 +192,16 @@ router.post('/searchItemsCount', (req, res) => {
             CityCode: params.searchCity,
             LastDataTime: params.searchLatestTime
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
 
@@ -158,26 +212,35 @@ router.post('/searchItemsCount', (req, res) => {
             CityCode: params.searchCity,
             LastDataTime: params.searchLatestTime
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //1A2B1C1D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
-
             CityCode: params.searchCity,
             LastDataTime: params.searchLatestTime
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //1A1B2C1D
@@ -187,11 +250,16 @@ router.post('/searchItemsCount', (req, res) => {
             Url: params.searchStartUrl,
             LastDataTime: params.searchLatestTime
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //1A1B1C2D
@@ -202,11 +270,16 @@ router.post('/searchItemsCount', (req, res) => {
             CityCode: params.searchCity,
 
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //2A2B1C1D
@@ -216,11 +289,16 @@ router.post('/searchItemsCount', (req, res) => {
             CityCode: params.searchCity,
             LastDataTime: params.searchLatestTime
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //2A1B2C1D
@@ -231,11 +309,16 @@ router.post('/searchItemsCount', (req, res) => {
 
             LastDataTime: params.searchLatestTime
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //2A1B1C2D
@@ -244,11 +327,16 @@ router.post('/searchItemsCount', (req, res) => {
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //1A2B2C1D
@@ -258,11 +346,16 @@ router.post('/searchItemsCount', (req, res) => {
 
             LastDataTime: params.searchLatestTime
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //1A2B1C2D
@@ -273,11 +366,16 @@ router.post('/searchItemsCount', (req, res) => {
             CityCode: params.searchCity,
 
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //1A1B2C2D
@@ -286,11 +384,16 @@ router.post('/searchItemsCount', (req, res) => {
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //1A2B2C2D
@@ -298,11 +401,16 @@ router.post('/searchItemsCount', (req, res) => {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //2A1B2C2D
@@ -312,11 +420,16 @@ router.post('/searchItemsCount', (req, res) => {
             Url: params.searchStartUrl,
 
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //2A2B1C2D
@@ -326,11 +439,16 @@ router.post('/searchItemsCount', (req, res) => {
             CityCode: params.searchCity,
 
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } //2A2B2C1D
@@ -338,20 +456,30 @@ router.post('/searchItemsCount', (req, res) => {
         CPROModel.countDocuments({
             LastDataTime: params.searchLatestTime
         }, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     } else {
         CPROModel.countDocuments({}, function(err, count) {
+            // if (err) {
+            //     console.log(err);
+            // }
+            // if (count) {
+            //     jsonWrite(res, count);
+            // }
             if (err) {
-                console.log(err);
-            }
-            if (count) {
-                jsonWrite(res, count);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, count, true);
             }
         })
     }
@@ -370,12 +498,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //2A1B1C1D
@@ -389,12 +522,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //1A2B1C1D
@@ -408,12 +546,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //1A1B2C1D
@@ -428,12 +571,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //1A1B1C2D
@@ -448,12 +596,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //2A2B1C1D
@@ -467,12 +620,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //2A1B2C1D
@@ -487,12 +645,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //2A1B1C2D
@@ -507,12 +670,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //1A2B2C1D
@@ -526,12 +694,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //1A2B1C2D
@@ -546,12 +719,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //1A1B2C2D
@@ -565,12 +743,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //1A2B2C2D
@@ -583,12 +766,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //2A1B2C2D
@@ -602,12 +790,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //2A2B1C2D
@@ -621,12 +814,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } //2A2B2C1D
@@ -639,12 +837,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     } else {
@@ -653,12 +856,17 @@ router.post('/searchItems', (req, res) => {
             skip: parseInt(params.startIndex)
         });
         query.exec(function(err, docs) {
+            // if (err) {
+            //     console.log(err);
+            //     return
+            // }
+            // if (docs) {
+            //     jsonWrite(res, docs);
+            // }
             if (err) {
-                console.log(err);
-                return
-            }
-            if (docs) {
-                jsonWrite(res, docs);
+                jsonWrite(res, err, false)
+            } else {
+                jsonWrite(res, docs, true);
             }
         });
     }
@@ -670,11 +878,16 @@ router.post('/getDataItemsNumb', (req, res) => {
     DataModel.countDocuments({
         ParserId: mongoose.Types.ObjectId(params.ParseId)
     }, function(err, count) {
+        // if (err) {
+        //     console.log(err);
+        // }
+        // if (count) {
+        //     jsonWrite(res, count);
+        // }
         if (err) {
-            console.log(err);
-        }
-        if (count) {
-            jsonWrite(res, count);
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, count, true);
         }
     })
 });
@@ -691,12 +904,17 @@ router.post('/getDataList', (req, res) => {
         }
     });
     query.exec(function(err, docs) {
+        // if (err) {
+        //     console.log(err);
+        //     return
+        // }
+        // if (docs) {
+        //     jsonWrite(res, docs);
+        // }
         if (err) {
-            console.log(err);
-            return
-        }
-        if (docs) {
-            jsonWrite(res, docs);
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, docs, true);
         }
     });
 });

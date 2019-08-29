@@ -26,6 +26,7 @@ export default new Vuex.Store({
         DataStartIndex: 0,
         DataOffsite: 10,
         DataCurrentPage: 1,
+        errList: [],
     },
     mutations: {
         SET_PROVINCE_LIST: (state, {
@@ -109,7 +110,14 @@ export default new Vuex.Store({
         SET_SEARCH_LatestTime(state, val) {
             state.searchLatestTime = val;
         },
-
+        INIT_ERRLIST(state) {
+            state.errList = [];
+        },
+        ADD_TO_ERRLIST(state, {
+            err
+        }) {
+            state.errList.push(err);
+        }
     },
     actions: {
         LOAD_PROVINCE: function({
@@ -117,10 +125,14 @@ export default new Vuex.Store({
             commit
         }) {
             axios.get('/api/project/getProvince').then((res) => {
-                //console.log(res.status);
-                commit('SET_PROVINCE_LIST', {
-                    provincelist: res.data
-                });
+                if (res.data.code == 0) {
+                    commit('SET_PROVINCE_LIST', {
+                        provincelist: res.data.data
+                    });
+                } else {
+                    layer.alert(res.data.msg)
+                }
+
             }, (err) => {
                 console.log(err);
             }).then(() => {
@@ -135,10 +147,13 @@ export default new Vuex.Store({
             commit
         }) {
             axios.get('/api/project/getItemsNumb').then((res) => {
-                commit('SET_ALL_COUNT', {
-
-                    count: parseInt(res.data)
-                });
+                if (res.data.code == 0) {
+                    commit('SET_ALL_COUNT', {
+                        count: parseInt(res.data.data)
+                    });
+                } else {
+                    layer.alert(res.data.msg)
+                }
             }, (err) => {
                 console.log(err);
             }).then(() => {
@@ -159,10 +174,13 @@ export default new Vuex.Store({
                     offsite: state.offsite
                 };
                 axios.post('/api/project/getLimitItem', params).then((res) => {
-                    //.log(res.data)
-                    commit('SET_PROJECT_LIST', {
-                        projectlist: res.data
-                    })
+                    if (res.data.code == 0) {
+                        commit('SET_PROJECT_LIST', {
+                            projectlist: res.data.data
+                        })
+                    } else {
+                        layer.alert(res.data.msg)
+                    }
                 });
             } else {
                 var params = {
@@ -174,9 +192,13 @@ export default new Vuex.Store({
                     offsite: state.offsite
                 };
                 axios.post('/api/project/searchItems', params).then((res) => {
-                    commit('SET_PROJECT_LIST', {
-                        projectlist: res.data
-                    })
+                    if (res.data.code == 0) {
+                        commit('SET_PROJECT_LIST', {
+                            projectlist: res.data.data
+                        })
+                    } else {
+                        layer.alert(res.data.msg)
+                    }
                 });
             }
         },
@@ -187,16 +209,22 @@ export default new Vuex.Store({
         }, params) {
             return new Promise((resolve, reject) => {
                 axios.post('/api/project/addProject', params).then((res) => {
-                    //console.log(res);
-                    //dispatch('SEARCH_PROJECTS');
-                    if (res.status == 200) {
+                    if (res.data.code == 0) {
+                        dispatch("SEARCH_PROJECTS")
                         resolve(0)
                     } else {
-                        reject(1)
+                        if (res.data.code == 11000) {
+                            let errmsg = res.data.msg;
+                            let msgIndex = errmsg.indexOf("dup key:");
+                            errmsg = errmsg.slice(msgIndex + 14, errmsg.length - 3)
+                            errmsg += "写入失败，重复写入"
+                            reject(errmsg)
+                        } else {
+                            reject(res.data.msg)
+                        }
                     }
                 })
             })
-
         },
         //删除指定项目
         DELETE_PROJECT: function({
@@ -204,7 +232,12 @@ export default new Vuex.Store({
             commit
         }, item) {
             axios.delete('api/project/deleteItem?_id=' + item).then((res) => {
-                dispatch('SEARCH_PROJECTS');
+                if (res.data.code == 0) {
+                    dispatch('SEARCH_PROJECTS');
+                } else {
+                    layer.alert(res.data.msg)
+                }
+                // dispatch('SEARCH_PROJECTS');
             })
         },
         //更新指定项目
@@ -213,7 +246,21 @@ export default new Vuex.Store({
             commit
         }, params) {
             axios.post('/api/project/updateItem', params).then((res) => {
-                dispatch('LOAD_PROJECT_LIST');
+                if (res.data.code == 0) {
+                    dispatch('LOAD_PROJECT_LIST');
+                } else {
+                    if (res.data.code == 11000) {
+                        let errmsg = res.data.msg;
+                        let msgIndex = errmsg.indexOf("dup key:");
+                        errmsg = errmsg.slice(msgIndex + 14, errmsg.length - 3)
+                        errmsg += "写入失败，该url已存在"
+                        layer.alert(errmsg)
+                    } else {
+                        layer.alert(res.data.msg)
+                    }
+
+                }
+                // dispatch('LOAD_PROJECT_LIST');
             })
         },
         //查询符合条件的项目
@@ -231,10 +278,16 @@ export default new Vuex.Store({
                 offsite: state.offsite
             };
             axios.post('api/project/searchItemsCount', params).then((res) => {
-                //console.log(res);
-                commit('SET_ALL_COUNT', {
-                    count: parseInt(res.data)
-                })
+                if (res.data.code == 0) {
+                    commit('SET_ALL_COUNT', {
+                        count: parseInt(res.data.data)
+                    })
+                } else {
+                    layer.alert(res.data.msg)
+                }
+                // commit('SET_ALL_COUNT', {
+                //     count: parseInt(res.data)
+                // })
             }).then(() => {
                 dispatch('LOAD_PROJECT_LIST');
             }, (err) => {
@@ -262,9 +315,17 @@ export default new Vuex.Store({
                 ParseId: state.searchedId,
             }
             axios.post('/api/project/getDataItemsNumb', params).then((res) => {
-                commit('SET_DATA_COUNT', {
-                    count: parseInt(res.data)
-                });
+                if (res.data.code == 0) {
+                    commit('SET_DATA_COUNT', {
+                        count: parseInt(res.data.data)
+                    });
+                } else {
+                    layer.alert(res.data.msg)
+                }
+
+                // commit('SET_DATA_COUNT', {
+                //     count: parseInt(res.data)
+                // });
             }, (err) => {
                 console.log(err);
             }).then(() => {
@@ -287,10 +348,16 @@ export default new Vuex.Store({
                 offsite: state.DataOffsite
             };
             axios.post('/api/project/getDataList', params).then((res) => {
-                //.log(res.data)
-                commit('SET_DATALIST', {
-                    datalist: res.data
-                });
+                if (res.data.code == 0) {
+                    commit('SET_DATALIST', {
+                        datalist: res.data.data
+                    });
+                } else {
+                    layer.alert(res.data.msg)
+                }
+                // commit('SET_DATALIST', {
+                //     datalist: res.data
+                // });
             });
         },
         //data翻页
@@ -310,7 +377,12 @@ export default new Vuex.Store({
             commit('SET_SEARCHID', {
                 val: params
             });
-        }
+        },
+        INIT_ERRLIST: function({
+            commit
+        }) {
+            commit('INIT_ERRLIST');
+        },
     },
     getters: {
         listProject: state => {
@@ -342,6 +414,9 @@ export default new Vuex.Store({
         },
         DataList: state => {
             return state.DataList;
+        },
+        errList: state => {
+            return state.errList;
         }
     },
 })

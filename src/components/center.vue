@@ -61,7 +61,14 @@
               <el-button type="primary" @click="Search">查询</el-button>
             </el-form-item>
           </el-form>
-          <el-table :data="listProject" border style="width:1190px" stripe size="medium">
+          <el-table
+            :data="listProject"
+            border
+            style="width:1190px"
+            stripe
+            size="medium"
+            @sort-change="changeSort"
+          >
             <el-table-column prop="WebName" label="网站名" width="120"></el-table-column>
             <el-table-column prop="Section" label="网站栏目" width="120"></el-table-column>
             <el-table-column prop="Source" label="来源" width="120"></el-table-column>
@@ -78,7 +85,7 @@
             </el-table-column>
             <el-table-column prop="LastRunTime" label="上次运行时间" width="200"></el-table-column>
             <el-table-column prop="LastDataTime" label="数据最新日期" width="200"></el-table-column>
-            <el-table-column prop="DataCount" label="数据总数" width="80">
+            <el-table-column prop="DataCount" label="数据总数" width="80" sortable>
               <template slot-scope="scope">
                 <el-button
                   @click="SearchDatas(scope.row)"
@@ -238,6 +245,7 @@ import { mapGetters, mapActions } from "vuex";
 import { truncate, truncateSync } from "fs";
 import { brotliCompress } from "zlib";
 import { type } from "os";
+import ElementUI from "element-ui";
 export default {
   name: "center",
   data() {
@@ -283,7 +291,8 @@ export default {
       "ProvinceList",
       "DataList",
       "DataCount",
-      "DataCurrentPage"
+      "DataCurrentPage",
+      "errList"
     ]),
     searchWebName: {
       get() {
@@ -326,6 +335,9 @@ export default {
     //按条件检索
     Search() {
       this.$store.dispatch("SEARCH_PROJECTS");
+    },
+    changeSort(val) {
+      console.log(val.prop + val.order);
     },
     //删除
     deleteItem() {
@@ -396,7 +408,8 @@ export default {
       this.form.LastRunTime = null;
       this.form.LastDataTime = null;
       this.form.DataCount = 0;
-      this.form.IsParsed = true;
+      this.form.IsParsed = false;
+      this.form.NeedRender = false;
       this.form.RowXPath = "";
     },
     addBatchItems() {
@@ -409,8 +422,15 @@ export default {
       if (this.form.Url != "") {
         switch (this.type) {
           case 0:
-            this.$store.dispatch("ADD_NEW_PROJECT", this.form);
-            this.$store.dispatch("SEARCH_PROJECTS", this.form);
+            var errmsg = this.form.Url + ":";
+            this.$store.dispatch("ADD_NEW_PROJECT", this.form).then(
+              function(value) {
+                alert(errmsg + "写入成功");
+              },
+              function(error) {
+                alert(error);
+              }
+            );
             break;
           case 1:
             this.$store.dispatch("UPDATE_PROJECT", this.form);
@@ -468,16 +488,18 @@ export default {
       }
     },
     BatchSubmit() {
-      let sCount = 0;
-      let items = this.batchString.split("\n");
+      var sCount = 0;
+      var eCount = 0;
+      var items = this.batchString.split("\n");
       if (items.length >= 2) {
-        // const loading = this.$loading({
-        //   lock: true,
-        //   text: "批量导入数据中",
-        //   spinner: "el-icon-loading",
-        //   background: "rgba(0, 0, 0, 0.7)"
-        // });
+        const loading = this.$loading({
+          lock: true,
+          text: "批量导入数据中",
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)"
+        });
         var keys = items[0].split("\t");
+        var indexs = [];
         for (var i = 1, len = items.length; i < len; i++) {
           var item = items[i].split("\t");
           if (item.length > 1) {
@@ -494,6 +516,7 @@ export default {
                 }
               });
             }
+
             if (dic["Url"] != undefined && dic["Url"] != "") {
               var params = {
                 WebName: dic["WebName"] == undefined ? "" : dic["WebName"],
@@ -513,32 +536,81 @@ export default {
                   dic["TitleXPath"] == undefined ? "" : dic["TitleXPath"],
                 DateXPath:
                   dic["DateXPath"] == undefined ? "" : dic["DateXPath"],
+                IsParsed: dic["IsParsed"] == false ? "" : dic["IsParsed"],
+                NeedRender: dic["NeedRender"] == false ? "" : dic["NeedRender"],
                 Remark: dic["Remark"] == undefined ? "" : dic["Remark"]
               };
               this.$store.dispatch("ADD_NEW_PROJECT", params).then(
                 function(value) {
                   sCount++;
-                  console.log("成功" + sCount);
+                  setTimeout(() => {
+                    loading.text =
+                      "成功" +
+                      sCount.toString() +
+                      "条<br/>失败" +
+                      eCount.toString() +
+                      "条";
+                  }, 1000);
+                  if (eCount + sCount == items.length - 2) {
+                    setTimeout(() => {
+                      loading.text = "批量导入完成";
+                      loading.close();
+                    }, 1000);
+                    let errMsg = "";
+                    indexs.forEach(ei => {
+                      errMsg += ei + "<br/>";
+                    });
+                    layer.alert(
+                      "成功" +
+                        sCount.toString() +
+                        "条<br/>失败" +
+                        eCount.toString() +
+                        "条                                                                            " +
+                        errMsg
+                    );
+                  }
                 },
                 function(error) {
-                  console.log("失败" + items.length - sCount - 1);
+                  indexs.push(error);
+                  eCount++;
+                  setTimeout(() => {
+                    loading.text =
+                      "成功" +
+                      sCount.toString() +
+                      "条     失败" +
+                      eCount.toString() +
+                      "条";
+                  }, 1000);
+                  if (eCount + sCount == items.length - 2) {
+                    loading.text = "批量导入完成";
+                    loading.close();
+                    let errMsg = "";
+                    let k = 1;
+                    indexs.forEach(ei => {
+                      errMsg += ei + "<br/>";
+                      k++;
+                    });
+                    layer.alert(
+                      "成功" +
+                        sCount.toString() +
+                        "条<br/>失败" +
+                        eCount.toString() +
+                        "条<br/>" +
+                        errMsg
+                    );
+                  }
                 }
               );
-              // setTimeout(() => {
-              //     loading.text = "导入" + sCount.toString();
-              //   }, 1000);
             }
           }
-          // setTimeout(() => {
-          //   loading.text = "批量导入完成";
-          //   loading.close();
-          // }, 1000);
+
           this.batchAddDialog = false;
         }
       } else {
         alert("输入数据不合法\n请输入合法数据(同时包含表头和数据)");
       }
     },
+
     initForm() {
       this.form.WebName = "";
       this.form.LinkXPath = "";
@@ -552,6 +624,8 @@ export default {
       this.form.LastDataTime = "";
       this.form.DataCount = 0;
       this.form.RowXPath = "";
+      this.form.IsParsed = false;
+      this.form.NeedRender = false;
     }
   }
 };
