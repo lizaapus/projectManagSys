@@ -21,14 +21,6 @@ var jsonWrite = function(res, ret, returntype) {
             msg: ret.name + '：' + ret.errmsg
         })
     }
-    // if (typeof ret === 'error') {
-    //     res.json({
-    //         code: '1',
-    //         msg: '操作失败：' + ret
-    //     })
-    // } else {
-    //     res.json(ret);
-    // }
 };
 //增加数据库记录
 router.post('/addProject', (req, res) => {
@@ -51,18 +43,6 @@ router.post('/addProject', (req, res) => {
         Remark: params.Remark
     })
     CPROEntity.save(function(error, doc) {
-        // if (error) {
-        //     res.json({
-        //         code: error.code,
-        //         msg: error.name + '：' + error.errmsg
-        //     })
-        // } else {
-        //     res.json({
-        //         code: 0,
-        //         msg: 'success',
-        //         data: doc
-        //     })
-        // }
         if (error) {
             jsonWrite(res, error, false)
         } else {
@@ -75,15 +55,10 @@ router.get('/getProvince', (req, res) => {
     ProvinceModel.find({
         '层级': "2"
     }, (err, data) => {
-        // if (err) {
-        //     return
-        // }
-        // if (data) {
-        //     jsonWrite(res, data);
-        // }
         if (err) {
             jsonWrite(res, err, false)
         } else {
+
             jsonWrite(res, data, true);
         }
     })
@@ -94,7 +69,8 @@ router.post('/getLimitItem', (req, res) => {
     var params = req.body;
     var query = CPROModel.find({}, null, {
         limit: parseInt(params.offsite),
-        skip: parseInt(params.startIndex)
+        skip: parseInt(params.startIndex),
+        sort: (params.sortParams)
     });
     query.exec(function(err, docs) {
         // if (err) {
@@ -111,18 +87,9 @@ router.post('/getLimitItem', (req, res) => {
         }
     });
 });
-
-
-
 //获取无条件下数据库表item总数
 router.get('/getItemsNumb', (req, res) => {
     CPROModel.countDocuments({}, function(err, count) {
-        // if (err) {
-        //     console.log(err);
-        // }
-        // if (count) {
-        //     jsonWrite(res, count);
-        // }
         if (err) {
             jsonWrite(res, err, false)
         } else {
@@ -130,7 +97,6 @@ router.get('/getItemsNumb', (req, res) => {
         }
     })
 });
-
 //更新指定item
 router.post('/updateItem', (req, res) => {
     var params = req.body;
@@ -162,7 +128,6 @@ router.post('/updateItem', (req, res) => {
         }
     })
 });
-
 //删除item
 router.delete('/deleteItem', (req, res) => {
     var params = req.query;
@@ -185,39 +150,34 @@ router.delete('/deleteItem', (req, res) => {
 //查询符合条件的item的总数
 router.post('/searchItemsCount', (req, res) => {
     var params = req.body;
-    if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: moment(params.sStarttime).format('YYYY-MM-DD HH:mm:ss'),
+                $lte: moment(params.sStarttime).format('YYYY-MM-DD HH:mm:ss')
+            }
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
+                // console.log(count);
                 jsonWrite(res, count, true);
             }
         })
 
     } //2A1B1C1D
-    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -225,76 +185,63 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //1A2B1C1D
-    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
             CityCode: params.searchCity,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
+                //    console.log(count);
                 jsonWrite(res, count, true);
             }
         })
     } //1A1B2C1D
-    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
+                //    console.log(count);
                 jsonWrite(res, count, true);
             }
         })
     } //1A1B1C2D
-    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
 
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
+                //    console.log(count);
                 jsonWrite(res, count, true);
             }
         })
     } //2A2B1C1D
-    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
-
             CityCode: params.searchCity,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -302,19 +249,14 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //2A1B2C1D
-    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity == '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
-
             Url: params.searchStartUrl,
-
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -322,17 +264,11 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //2A1B1C2D
-    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity != '' && (params.searchLatestTime == null || params.searchLatestTime !== '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -340,18 +276,15 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //1A2B2C1D
-    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
 
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -359,19 +292,13 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //1A2B1C2D
-    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
 
             CityCode: params.searchCity,
 
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -379,17 +306,11 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //1A1B2C2D
-    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -397,16 +318,10 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //1A2B2C2D
-    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
             WebName: params.searchWebName,
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -414,18 +329,10 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //2A1B2C2D
-    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity == '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
-
             Url: params.searchStartUrl,
-
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -433,18 +340,11 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //2A2B1C2D
-    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime == '')) {
+
         CPROModel.countDocuments({
-
             CityCode: params.searchCity,
-
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -452,16 +352,13 @@ router.post('/searchItemsCount', (req, res) => {
             }
         })
     } //2A2B2C1D
-    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity == '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -470,12 +367,6 @@ router.post('/searchItemsCount', (req, res) => {
         })
     } else {
         CPROModel.countDocuments({}, function(err, count) {
-            // if (err) {
-            //     console.log(err);
-            // }
-            // if (count) {
-            //     jsonWrite(res, count);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -484,27 +375,24 @@ router.post('/searchItemsCount', (req, res) => {
         })
     }
 });
-//查询符合条件的指定item
+//查询符合条件的item
 router.post('/searchItems', (req, res) => {
     var params = req.body;
-    if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -512,23 +400,20 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //2A1B1C1D
-    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -536,23 +421,20 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //1A2B1C1D
-    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
             WebName: params.searchWebName,
             CityCode: params.searchCity,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -560,24 +442,20 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //1A1B2C1D
-    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
-
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -585,7 +463,7 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //1A1B1C2D
-    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
@@ -593,16 +471,10 @@ router.post('/searchItems', (req, res) => {
 
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -610,23 +482,19 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //2A2B1C1D
-    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
-
             CityCode: params.searchCity,
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -634,24 +502,21 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //2A1B2C1D
-    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity == '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
 
             Url: params.searchStartUrl,
 
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -659,7 +524,7 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //2A1B1C2D
-    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity != '' && (params.searchLatestTime == null || params.searchLatestTime !== '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
 
             Url: params.searchStartUrl,
@@ -667,16 +532,10 @@ router.post('/searchItems', (req, res) => {
 
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -684,23 +543,20 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //1A2B2C1D
-    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
             WebName: params.searchWebName,
 
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -708,24 +564,17 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //1A2B1C2D
-    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
             WebName: params.searchWebName,
-
             CityCode: params.searchCity,
-
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
+
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -733,23 +582,16 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //1A1B2C2D
-    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
             WebName: params.searchWebName,
             Url: params.searchStartUrl,
-
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -757,22 +599,15 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //1A2B2C2D
-    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
             WebName: params.searchWebName,
-
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -780,23 +615,15 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //2A1B2C2D
-    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity == '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
-
             Url: params.searchStartUrl,
-
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -804,23 +631,15 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //2A2B1C2D
-    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity != '' && (params.searchLatestTime == null || params.searchLatestTime == '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
-
             CityCode: params.searchCity,
-
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -828,22 +647,18 @@ router.post('/searchItems', (req, res) => {
             }
         });
     } //2A2B2C1D
-    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity == '' && (params.searchLatestTime != null && params.searchLatestTime != '')) {
+    else if (params.searchWebName == '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
-
-            LastDataTime: params.searchLatestTime
+            LastDataTime: {
+                $gte: params.sStarttime,
+                $lte: params.sEndtime
+            }
         }, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -853,16 +668,10 @@ router.post('/searchItems', (req, res) => {
     } else {
         var query = CPROModel.find({}, null, {
             limit: parseInt(params.offsite),
-            skip: parseInt(params.startIndex)
+            skip: parseInt(params.startIndex),
+            sort: (params.sortParams),
         });
         query.exec(function(err, docs) {
-            // if (err) {
-            //     console.log(err);
-            //     return
-            // }
-            // if (docs) {
-            //     jsonWrite(res, docs);
-            // }
             if (err) {
                 jsonWrite(res, err, false)
             } else {
@@ -878,12 +687,6 @@ router.post('/getDataItemsNumb', (req, res) => {
     DataModel.countDocuments({
         ParserId: mongoose.Types.ObjectId(params.ParseId)
     }, function(err, count) {
-        // if (err) {
-        //     console.log(err);
-        // }
-        // if (count) {
-        //     jsonWrite(res, count);
-        // }
         if (err) {
             jsonWrite(res, err, false)
         } else {
@@ -918,4 +721,61 @@ router.post('/getDataList', (req, res) => {
         }
     });
 });
+//SortByDataCount
+router.post('/sortByCollumn', (req, res) => {
+    var params = req.body;
+    var query = CPROModel.find({}, null, {
+        limit: parseInt(params.offsite),
+        skip: parseInt(params.startIndex),
+        sort: (params.sortParams)
+    });
+    // switch (params.sortProp) {
+    //     case "DataCount":
+    // query = CPROModel.find({}, null, {
+    //     limit: parseInt(params.offsite),
+    //     skip: parseInt(params.startIndex),
+    //     sort: {
+    //         "DataCount": params.sortOrder
+    //     }
+    // });       
+    //         break;
+    //     case "LastDataTime":
+    //         query = CPROModel.find({}, null, {
+    //             limit: parseInt(params.offsite),
+    //             skip: parseInt(params.startIndex),
+    //             sort: {
+    //                 "LastDataTime": params.sortOrder
+    //             }
+    //         });
+    //         break;
+    //     case "CityCode":
+    //         query = CPROModel.find({}, null, {
+    //             limit: parseInt(params.offsite),
+    //             skip: parseInt(params.startIndex),
+    //             sort: {
+    //                 "CityCode": params.sortOrder
+    //             }
+    //         });
+    //         break;
+    //     case "WebName":
+    //         query = CPROModel.find({}, null, {
+    //             limit: parseInt(params.offsite),
+    //             skip: parseInt(params.startIndex),
+    //             sort: {
+    //                 "WebName": params.sortOrder
+    //             }
+    //         });
+    //         break;
+    // }
+
+    query.exec(function(err, docs) {
+        if (err) {
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, docs, true);
+        }
+    });
+});
+
+
 module.exports = router

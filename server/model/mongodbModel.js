@@ -77,7 +77,7 @@ const CPROSchema = new Schema({
         type: String,
     }
 }, {
-    collection: 'Copy_of_Parser'
+    collection: 'Parser'
 });
 
 const DataSchema = new Schema({
@@ -111,7 +111,7 @@ const DataSchema = new Schema({
 
 const ProvinceModel = mongoose.model('Province', ProvinceSchema)
 
-const CPROModel = mongoose.model('Copy_of_Parser', CPROSchema)
+const CPROModel = mongoose.model('Parser', CPROSchema)
 
 const DataModel = mongoose.model('Data', DataSchema)
 module.exports = {

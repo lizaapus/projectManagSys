@@ -5,6 +5,9 @@ import moment from 'moment';
 import {
     stat
 } from 'fs';
+import {
+    Switch
+} from 'element-ui';
 
 Vue.use(Vuex)
 
@@ -26,7 +29,7 @@ export default new Vuex.Store({
         DataStartIndex: 0,
         DataOffsite: 10,
         DataCurrentPage: 1,
-        errList: [],
+        sortParams: '',
     },
     mutations: {
         SET_PROVINCE_LIST: (state, {
@@ -110,13 +113,10 @@ export default new Vuex.Store({
         SET_SEARCH_LatestTime(state, val) {
             state.searchLatestTime = val;
         },
-        INIT_ERRLIST(state) {
-            state.errList = [];
-        },
-        ADD_TO_ERRLIST(state, {
-            err
-        }) {
-            state.errList.push(err);
+        SET_SORT_PARAMS: (state, {
+            val
+        }) => {
+            state.sortParams = val;
         }
     },
     actions: {
@@ -168,10 +168,17 @@ export default new Vuex.Store({
             dispatch,
             commit
         }) {
-            if (state.searchWebName == '' && state.searchCity == '' && state.searchStartUrl == '' && (state.searchLatestTime == '' || state.searchLatestTime == null)) {
+            let sStarttime = ''
+            let sEndtime = ''
+            if (state.searchLatestTime != null && state.searchLatestTime != "") {
+                sStarttime = moment(state.searchLatestTime[0]).format('YYYY-MM-DD') + " 00:00:00";
+                sEndtime = moment(state.searchLatestTime[1]).format('YYYY-MM-DD') + " 23:59:59";
+            }
+            if (state.searchWebName == '' && state.searchCity == '' && state.searchStartUrl == '' && sStarttime == '') {
                 var params = {
                     startIndex: state.startindex,
-                    offsite: state.offsite
+                    offsite: state.offsite,
+                    sortParams: state.sortParams
                 };
                 axios.post('/api/project/getLimitItem', params).then((res) => {
                     if (res.data.code == 0) {
@@ -187,9 +194,11 @@ export default new Vuex.Store({
                     searchWebName: state.searchWebName,
                     searchCity: state.searchCity,
                     searchStartUrl: state.searchStartUrl,
-                    searchLatestTime: state.searchLatestTime,
+                    sStarttime: sStarttime,
+                    sEndtime: sEndtime,
                     startIndex: state.startindex,
-                    offsite: state.offsite
+                    offsite: state.offsite,
+                    sortParams: state.sortParams
                 };
                 axios.post('/api/project/searchItems', params).then((res) => {
                     if (res.data.code == 0) {
@@ -269,25 +278,31 @@ export default new Vuex.Store({
             dispatch,
             commit,
         }) {
+            let sStarttime = ''
+            let sEndtime = ''
+            if (state.searchLatestTime != null && state.searchLatestTime != '') {
+                sStarttime = moment(state.searchLatestTime[0]).format('YYYY-MM-DD') + " 00:00:00";
+                sEndtime = moment(state.searchLatestTime[1]).format('YYYY-MM-DD') + " 23:59:59";
+            }
             var params = {
                 searchWebName: state.searchWebName,
                 searchCity: state.searchCity,
                 searchStartUrl: state.searchStartUrl,
-                searchLatestTime: state.searchLatestTime,
+                sStarttime: sStarttime,
+                sEndtime: sEndtime,
                 startIndex: state.startindex,
-                offsite: state.offsite
+                offsite: state.offsite,
+                sortParams: state.sortParams
             };
             axios.post('api/project/searchItemsCount', params).then((res) => {
                 if (res.data.code == 0) {
+                    console.log(res.data);
                     commit('SET_ALL_COUNT', {
                         count: parseInt(res.data.data)
                     })
                 } else {
                     layer.alert(res.data.msg)
                 }
-                // commit('SET_ALL_COUNT', {
-                //     count: parseInt(res.data)
-                // })
             }).then(() => {
                 dispatch('LOAD_PROJECT_LIST');
             }, (err) => {
@@ -322,10 +337,6 @@ export default new Vuex.Store({
                 } else {
                     layer.alert(res.data.msg)
                 }
-
-                // commit('SET_DATA_COUNT', {
-                //     count: parseInt(res.data)
-                // });
             }, (err) => {
                 console.log(err);
             }).then(() => {
@@ -341,7 +352,6 @@ export default new Vuex.Store({
             dispatch,
             commit
         }) {
-
             var params = {
                 ParseId: state.searchedId,
                 startIndex: state.DataStartIndex,
@@ -355,9 +365,6 @@ export default new Vuex.Store({
                 } else {
                     layer.alert(res.data.msg)
                 }
-                // commit('SET_DATALIST', {
-                //     datalist: res.data
-                // });
             });
         },
         //data翻页
@@ -378,11 +385,20 @@ export default new Vuex.Store({
                 val: params
             });
         },
-        INIT_ERRLIST: function({
-            commit
-        }) {
-            commit('INIT_ERRLIST');
-        },
+        SORT_PARAMS: function({
+            commit,
+            dispatch
+        }, params) {
+            let sortP = params.sortProp
+            if (params.sortOrder == null)
+                sortP = ''
+            if (params.sortOrder == "descending")
+                sortP = '-' + sortP
+            commit('SET_SORT_PARAMS', {
+                val: sortP
+            });
+            dispatch("SEARCH_PROJECTS");
+        }
     },
     getters: {
         listProject: state => {
@@ -415,8 +431,6 @@ export default new Vuex.Store({
         DataList: state => {
             return state.DataList;
         },
-        errList: state => {
-            return state.errList;
-        }
+
     },
 })

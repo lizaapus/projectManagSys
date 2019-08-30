@@ -13,7 +13,7 @@
             center
             title="批量导入数据"
             @close="RefreshList"
-            :before-close="handleClose"
+            :close-on-click-modal="false"
           >
             <table class="batchDiv" width="100%">
               <tr width="100%">
@@ -35,13 +35,20 @@
             </span>
           </el-dialog>
         </div>
-        <el-form class="searchDiv">
+        <el-form class="searchDiv" size="mini">
           <el-form :inline="true" class="demo-form-inline">
             <el-form-item label="网站名称：">
-              <input class="inputC" v-model="searchWebName" placeholder="网站名称" />
+              <el-input v-model="searchWebName" placeholder="网站名称"></el-input>
+              <!-- <input class="inputC" v-model="searchWebName" placeholder="网站名称" /> -->
             </el-form-item>
-            <el-form-item label="所在城市：">
-              <el-select v-model="searchCity" clearable filterable placeholder="请选择">
+            <el-form-item label="城市：">
+              <el-select
+                v-model="searchCity"
+                clearable
+                filterable
+                placeholder="请选择"
+                style="width:120px;"
+              >
                 <el-option
                   v-for="item in ProvinceList"
                   :key="item.省市代码"
@@ -49,13 +56,24 @@
                   :value="item.省市代码"
                 ></el-option>
               </el-select>
-              <!-- <input class="inputC" v-model="searchCity" placeholder="城市" /> -->
             </el-form-item>
-            <el-form-item label="起始URL：">
-              <input class="inputC" v-model="searchStartUrl" placeholder="URL" />
+            <el-form-item label="Url：">
+              <el-input v-model="searchStartUrl" placeholder="url"></el-input>
+              <!-- <input class="inputC" v-model="searchStartUrl" placeholder="url" /> -->
             </el-form-item>
-            <el-form-item label="数据最新时间">
-              <el-date-picker placeholder="选择时间" v-model="sLatestTime" style="width: 100%;"></el-date-picker>
+            <el-form-item label="数据最新日期">
+              <el-date-picker
+                v-model="sLatestTime"
+                type="daterange"
+                align="right"
+                unlink-panels
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                :picker-options="pickerOptions"
+                style="width:250px;"
+              ></el-date-picker>
+              <!-- <el-date-picker placeholder="选择时间" v-model="sLatestTime" style="width: 100%;"></el-date-picker> -->
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="Search">查询</el-button>
@@ -69,11 +87,11 @@
             size="medium"
             @sort-change="changeSort"
           >
-            <el-table-column prop="WebName" label="网站名" width="120"></el-table-column>
+            <el-table-column prop="WebName" label="网站名" width="120" sortable="custom"></el-table-column>
             <el-table-column prop="Section" label="网站栏目" width="120"></el-table-column>
-            <el-table-column prop="Source" label="来源" width="120"></el-table-column>
-            <el-table-column prop="CityCode" label="城市" width="120"></el-table-column>
-            <el-table-column prop="Url" label="起始Url" width="120">
+            <el-table-column prop="Source" label="来源" width="100"></el-table-column>
+            <el-table-column prop="CityCode" label="城市" width="100"></el-table-column>
+            <el-table-column prop="Url" label="起始Url" width="200">
               <template slot-scope="scope">
                 <el-link
                   type="primary"
@@ -83,9 +101,9 @@
                 ></el-link>
               </template>
             </el-table-column>
-            <el-table-column prop="LastRunTime" label="上次运行时间" width="200"></el-table-column>
-            <el-table-column prop="LastDataTime" label="数据最新日期" width="200"></el-table-column>
-            <el-table-column prop="DataCount" label="数据总数" width="80" sortable>
+            <el-table-column prop="LastRunTime" label="上次运行时间" width="160"></el-table-column>
+            <el-table-column prop="LastDataTime" label="数据最新日期" width="160" sortable="custom"></el-table-column>
+            <el-table-column prop="DataCount" label="数据总数" width="120" sortable="custom">
               <template slot-scope="scope">
                 <el-button
                   @click="SearchDatas(scope.row)"
@@ -95,7 +113,7 @@
                 ></el-button>
               </template>
             </el-table-column>
-            <el-table-column fixed="right" label="操作" width="100">
+            <el-table-column fixed="right" label="操作" width="80">
               <template slot-scope="scope">
                 <el-button @click="UpdateItem(scope.row)" type="text" size="normal">编辑</el-button>
                 <!-- <el-button type="text" size="normal" @click="deleteItem(scope.row)">删除</el-button> -->
@@ -117,7 +135,7 @@
             width="30%"
             center
             @close="RefreshList"
-            :before-close="handleClose"
+            :close-on-click-modal="false"
           >
             <el-form
               ref="form"
@@ -207,7 +225,7 @@
             :title="dataDialogtitle"
             :visible.sync="dataListDialog"
             width="80%"
-            :before-close="handleClose"
+            :close-on-click-modal="false"
           >
             <el-table :data="DataList" border stripe>
               <el-table-column property="Url" label="网址" min-width="250">
@@ -280,6 +298,37 @@ export default {
       },
       rules: {
         Url: [{ required: true, message: "请输入起始网址", trigger: "blur" }]
+      },
+      pickerOptions: {
+        shortcuts: [
+          {
+            text: "最近一周",
+            onClick(picker) {
+              const end = new Date();
+              const start = new Date();
+              start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
+              picker.$emit("pick", [start, end]);
+            }
+          },
+          {
+            text: "最近一个月",
+            onClick(picker) {
+              const end = new Date();
+              const start = new Date();
+              start.setTime(start.getTime() - 3600 * 1000 * 24 * 30);
+              picker.$emit("pick", [start, end]);
+            }
+          },
+          {
+            text: "最近三个月",
+            onClick(picker) {
+              const end = new Date();
+              const start = new Date();
+              start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
+              picker.$emit("pick", [start, end]);
+            }
+          }
+        ]
       }
     };
   },
@@ -291,8 +340,7 @@ export default {
       "ProvinceList",
       "DataList",
       "DataCount",
-      "DataCurrentPage",
-      "errList"
+      "DataCurrentPage"
     ]),
     searchWebName: {
       get() {
@@ -329,7 +377,6 @@ export default {
   },
   mounted: function() {
     this.$store.dispatch("LOAD_PROVINCE");
-    //this.$store.dispatch("LOAD_ALL_COUNT");
   },
   methods: {
     //按条件检索
@@ -337,7 +384,10 @@ export default {
       this.$store.dispatch("SEARCH_PROJECTS");
     },
     changeSort(val) {
-      console.log(val.prop + val.order);
+      this.$store.dispatch("SORT_PARAMS", {
+        sortProp: val.prop,
+        sortOrder: val.order
+      });
     },
     //删除
     deleteItem() {
@@ -360,7 +410,6 @@ export default {
             type: "info",
             message: "已取消删除"
           });
-          //this.singleAddDialog = false;
         });
     },
     //双击修改
@@ -604,7 +653,7 @@ export default {
             }
           }
 
-          this.batchAddDialog = false;
+          // this.batchAddDialog = false;
         }
       } else {
         alert("输入数据不合法\n请输入合法数据(同时包含表头和数据)");
@@ -645,6 +694,7 @@ export default {
   margin-top: 10px;
   margin-left: 40px;
   text-align: left;
+  width: 100%;
 }
 .el-row {
   margin-bottom: 20px;
