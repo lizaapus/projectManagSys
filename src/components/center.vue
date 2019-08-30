@@ -38,7 +38,7 @@
         <el-form class="searchDiv" size="mini">
           <el-form :inline="true" class="demo-form-inline">
             <el-form-item label="网站名称：">
-              <el-input v-model="searchWebName" placeholder="网站名称"></el-input>
+              <el-input v-model="searchWebName" placeholder="网站名称" clearable></el-input>
               <!-- <input class="inputC" v-model="searchWebName" placeholder="网站名称" /> -->
             </el-form-item>
             <el-form-item label="城市：">
@@ -58,7 +58,7 @@
               </el-select>
             </el-form-item>
             <el-form-item label="Url：">
-              <el-input v-model="searchStartUrl" placeholder="url"></el-input>
+              <el-input v-model="searchStartUrl" placeholder="url" clearable></el-input>
               <!-- <input class="inputC" v-model="searchStartUrl" placeholder="url" /> -->
             </el-form-item>
             <el-form-item label="数据最新日期">
@@ -376,11 +376,13 @@ export default {
     }
   },
   mounted: function() {
+    console.log("LOAD_PROVINCE");
     this.$store.dispatch("LOAD_PROVINCE");
   },
   methods: {
     //按条件检索
     Search() {
+      console.log("SEARCH_PROJECTS");
       this.$store.dispatch("SEARCH_PROJECTS");
     },
     changeSort(val) {
@@ -491,6 +493,7 @@ export default {
     },
     handleCurrentChange(val) {
       this.$store.dispatch("PAGE_CHANGED", val);
+      return false;
     },
     DataCurrentChange(val) {
       this.$store.dispatch("DATA_PAGE_CHANGED", val);
@@ -500,6 +503,7 @@ export default {
     },
     //刷新列表
     RefreshList() {
+      console.log("RefreshList");
       this.$store.dispatch("PAGE_CHANGED", this.currentPage);
     },
     uuid() {

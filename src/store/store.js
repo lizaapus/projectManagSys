@@ -278,6 +278,7 @@ export default new Vuex.Store({
             dispatch,
             commit,
         }) {
+            //console.log("enter search");
             let sStarttime = ''
             let sEndtime = ''
             if (state.searchLatestTime != null && state.searchLatestTime != '') {
