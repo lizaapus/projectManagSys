@@ -3,28 +3,30 @@
     <el-col :span="24">
       <el-avatar icon="el-icon-user-solid"></el-avatar>
       <el-menu
-        default-active="2"
+        default-active="1"
         class="el-menu-vertical-demo"
         background-color="white"
         text-color="black"
         active-text-color="#ffd04b"
       >
         <el-menu-item index="1">
-          <i class="el-icon-location"></i>
-          <span>导航一</span>
+          <router-link to="/ProjectManager" class="linkStyle">
+            <div>项目管理</div>
+          </router-link>
         </el-menu-item>
         <el-menu-item index="2">
-          <i class="el-icon-menu"></i>
-          <span slot="title">导航二</span>
+          <router-link to="/FundProManager" class="linkStyle">
+            <div>基金管理</div>
+          </router-link>
         </el-menu-item>
-        <el-menu-item index="3">
+        <!-- <el-menu-item index="3">
           <i class="el-icon-document"></i>
           <span slot="title">导航三</span>
         </el-menu-item>
         <el-menu-item index="4">
           <i class="el-icon-setting"></i>
           <span slot="title">导航四</span>
-        </el-menu-item>
+        </el-menu-item>-->
       </el-menu>
     </el-col>
   </div>
@@ -40,7 +42,6 @@ export default {
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="stylus">
 .hello {
   margin-top: 40px;

@@ -7,6 +7,8 @@ const mongoose = require('mongoose')
 const ProvinceModel = model.ProvinceModel
 const CPROModel = model.CPROModel
 const DataModel = model.DataModel
+const FundModel = model.FundModel
+const ProjectModel = model.ProjectModel
 
 var jsonWrite = function(res, ret, returntype) {
     if (returntype) {
@@ -18,11 +20,12 @@ var jsonWrite = function(res, ret, returntype) {
     } else {
         res.json({
             code: ret.code,
-            msg: ret.name + '：' + ret.errmsg
+            msg: ret.name + '：' + ret.errmsg,
+            err: ret
         })
     }
 };
-//增加数据库记录
+//单个增加数据库记录
 router.post('/addProject', (req, res) => {
     var params = req.body;
     var CPROEntity = new CPROModel({
@@ -50,11 +53,26 @@ router.post('/addProject', (req, res) => {
         }
     });
 });
+//批量增加数据
+router.post('/insertManyProject', (req, res) => {
+    var params = req.body;
+    //console.log(params);
+    CPROModel.insertMany(params, {
+        ordered: false
+    }, function(error, docs) {
+        if (error) {
+            //console.log(error);
+            jsonWrite(res, error, false)
+        } else {
+            //console.log(docs)
+            jsonWrite(res, docs, true);
+        }
+    })
+})
+
 //获取省市信息
 router.get('/getProvince', (req, res) => {
-    ProvinceModel.find({
-        '层级': "2"
-    }, (err, data) => {
+    ProvinceModel.find({}, (err, data) => {
         if (err) {
             jsonWrite(res, err, false)
         } else {
@@ -73,13 +91,6 @@ router.post('/getLimitItem', (req, res) => {
         sort: (params.sortParams)
     });
     query.exec(function(err, docs) {
-        // if (err) {
-        //     console.log(err);
-        //     return
-        // }
-        // if (docs) {
-        //     jsonWrite(res, docs);
-        // }
         if (err) {
             jsonWrite(res, err, false)
         } else {
@@ -100,27 +111,46 @@ router.get('/getItemsNumb', (req, res) => {
 //更新指定item
 router.post('/updateItem', (req, res) => {
     var params = req.body;
+    //console.log(params);
     CPROModel.findByIdAndUpdate(params._id, {
         WebName: params.WebName,
         Section: params.Section,
         Source: params.Source,
         CityCode: params.CityCode,
         Url: params.Url,
-        LastRunTime: params.LastRunTime == '' || params.LastRunTime == null || params.LastRunTime == '0000-00-00 00:00:00' ? '0000-00-00 00:00:00' : moment(params.LastRunTime).format('YYYY-MM-DD HH:mm:ss'),
-        LastDataTime: params.LastDataTime == '' || params.LastDataTime == null || params.LastDataTime == '0000-00-00 00:00:00' ? '0000-00-00 00:00:00' : moment(params.LastDataTime).format('YYYY-MM-DD HH:mm:ss'),
-        DataCount: parseInt(params.DataCount),
+        IsParsed: Boolean(params.IsParsed),
+        NeedRender: Boolean(params.NeedRender),
         RowXPath: params.RowXPath,
         LinkXPath: params.LinkXPath,
         TitleXPath: params.TitleXPath,
         DateXPath: params.DateXPath,
         Remark: params.Remark,
+        LastEditTime: params.LastEditTime
     }, function(err, data) {
-        // if (err) {
-        //     console.log(err);
-        // }
-        // if (data) {
-        //     jsonWrite(res, data);
-        //     }
+        if (err) {
+            //console.log(err);
+            jsonWrite(res, err, false)
+        } else {
+            //console.log(data)
+            jsonWrite(res, data, true);
+        }
+    })
+});
+
+//更新插入失败的item
+router.post('/updateInsertItem', (req, res) => {
+    var params = req.body;
+    CPROModel.findOneAndUpdate({
+        Url: params.Url
+    }, {
+        WebName: params.WebName,
+        Section: params.Section,
+        Source: params.Source,
+        CityCode: params.CityCode,
+        Url: params.Url,
+        LastEditTime: params.LastEditTime,
+        Remark: params.Remark,
+    }, function(err, data) {
         if (err) {
             jsonWrite(res, err, false)
         } else {
@@ -132,13 +162,6 @@ router.post('/updateItem', (req, res) => {
 router.delete('/deleteItem', (req, res) => {
     var params = req.query;
     CPROModel.findByIdAndRemove(params._id, (error, data) => {
-        // if (error) {
-
-        //     console.log(error);
-        //     throw error;
-        // } else {
-        //     jsonWrite(res, data);
-        // }
         if (error) {
             jsonWrite(res, error, false)
         } else {
@@ -152,7 +175,10 @@ router.post('/searchItemsCount', (req, res) => {
     var params = req.body;
     if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
             LastDataTime: {
@@ -187,7 +213,10 @@ router.post('/searchItemsCount', (req, res) => {
     } //1A2B1C1D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             CityCode: params.searchCity,
             LastDataTime: {
                 $gte: params.sStarttime,
@@ -204,7 +233,10 @@ router.post('/searchItemsCount', (req, res) => {
     } //1A1B2C1D
     else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             Url: params.searchStartUrl,
             LastDataTime: {
                 $gte: params.sStarttime,
@@ -221,7 +253,10 @@ router.post('/searchItemsCount', (req, res) => {
     } //1A1B1C2D
     else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
 
@@ -278,7 +313,10 @@ router.post('/searchItemsCount', (req, res) => {
     } //1A2B2C1D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime != '')) {
         CPROModel.countDocuments({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
 
             LastDataTime: {
                 $gte: params.sStarttime,
@@ -294,7 +332,10 @@ router.post('/searchItemsCount', (req, res) => {
     } //1A2B1C2D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
 
             CityCode: params.searchCity,
 
@@ -308,7 +349,10 @@ router.post('/searchItemsCount', (req, res) => {
     } //1A1B2C2D
     else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             Url: params.searchStartUrl,
         }, function(err, count) {
             if (err) {
@@ -320,7 +364,10 @@ router.post('/searchItemsCount', (req, res) => {
     } //1A2B2C2D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime == '')) {
         CPROModel.countDocuments({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
         }, function(err, count) {
             if (err) {
                 jsonWrite(res, err, false)
@@ -380,7 +427,10 @@ router.post('/searchItems', (req, res) => {
     var params = req.body;
     if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
             LastDataTime: {
@@ -423,7 +473,10 @@ router.post('/searchItems', (req, res) => {
     } //1A2B1C1D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             CityCode: params.searchCity,
             LastDataTime: {
                 $gte: params.sStarttime,
@@ -444,7 +497,10 @@ router.post('/searchItems', (req, res) => {
     } //1A1B2C1D
     else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             Url: params.searchStartUrl,
             LastDataTime: {
                 $gte: params.sStarttime,
@@ -465,7 +521,10 @@ router.post('/searchItems', (req, res) => {
     } //1A1B1C2D
     else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity != '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             Url: params.searchStartUrl,
             CityCode: params.searchCity,
 
@@ -545,7 +604,10 @@ router.post('/searchItems', (req, res) => {
     } //1A2B2C1D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime != '')) {
         var query = CPROModel.find({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
 
             LastDataTime: {
                 $gte: params.sStarttime,
@@ -566,7 +628,10 @@ router.post('/searchItems', (req, res) => {
     } //1A2B1C2D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity != '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             CityCode: params.searchCity,
         }, null, {
             limit: parseInt(params.offsite),
@@ -584,7 +649,10 @@ router.post('/searchItems', (req, res) => {
     } //1A1B2C2D
     else if (params.searchWebName != '' && params.searchStartUrl != '' && params.searchCity == '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
             Url: params.searchStartUrl,
         }, null, {
             limit: parseInt(params.offsite),
@@ -601,7 +669,10 @@ router.post('/searchItems', (req, res) => {
     } //1A2B2C2D
     else if (params.searchWebName != '' && params.searchStartUrl == '' && params.searchCity == '' && (params.sStarttime == '')) {
         var query = CPROModel.find({
-            WebName: params.searchWebName,
+            WebName: {
+                $regex: params.searchWebName,
+                $options: '$i'
+            },
         }, null, {
             limit: parseInt(params.offsite),
             skip: parseInt(params.startIndex),
@@ -707,13 +778,6 @@ router.post('/getDataList', (req, res) => {
         }
     });
     query.exec(function(err, docs) {
-        // if (err) {
-        //     console.log(err);
-        //     return
-        // }
-        // if (docs) {
-        //     jsonWrite(res, docs);
-        // }
         if (err) {
             jsonWrite(res, err, false)
         } else {
@@ -729,44 +793,6 @@ router.post('/sortByCollumn', (req, res) => {
         skip: parseInt(params.startIndex),
         sort: (params.sortParams)
     });
-    // switch (params.sortProp) {
-    //     case "DataCount":
-    // query = CPROModel.find({}, null, {
-    //     limit: parseInt(params.offsite),
-    //     skip: parseInt(params.startIndex),
-    //     sort: {
-    //         "DataCount": params.sortOrder
-    //     }
-    // });       
-    //         break;
-    //     case "LastDataTime":
-    //         query = CPROModel.find({}, null, {
-    //             limit: parseInt(params.offsite),
-    //             skip: parseInt(params.startIndex),
-    //             sort: {
-    //                 "LastDataTime": params.sortOrder
-    //             }
-    //         });
-    //         break;
-    //     case "CityCode":
-    //         query = CPROModel.find({}, null, {
-    //             limit: parseInt(params.offsite),
-    //             skip: parseInt(params.startIndex),
-    //             sort: {
-    //                 "CityCode": params.sortOrder
-    //             }
-    //         });
-    //         break;
-    //     case "WebName":
-    //         query = CPROModel.find({}, null, {
-    //             limit: parseInt(params.offsite),
-    //             skip: parseInt(params.startIndex),
-    //             sort: {
-    //                 "WebName": params.sortOrder
-    //             }
-    //         });
-    //         break;
-    // }
 
     query.exec(function(err, docs) {
         if (err) {
@@ -777,5 +803,80 @@ router.post('/sortByCollumn', (req, res) => {
     });
 });
 
+router.post('/getFundsList', (req, res) => {
+    var params = req.body;
 
+    var query = FundModel.find({
+        FundName: {
+            $regex: params.keywords,
+            $options: '$i'
+        }
+    });
+
+    query.exec(function(err, docs) {
+        if (err) {
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, docs, true);
+        }
+    });
+});
+//批量添加基金数据
+router.post('/insertManyFundProject', (req, res) => {
+        var params = req.body;
+        ProjectModel.insertMany(params, {
+            ordered: false
+        }, function(error, docs) {
+            if (error) {
+                //console.log(error);
+                jsonWrite(res, error, false)
+            } else {
+                //console.log(docs)
+                jsonWrite(res, docs, true);
+            }
+        })
+    })
+    //批量添加基金数据
+router.post('/insertManyFundProject', (req, res) => {
+        var params = req.body;
+        ProjectModel.insertMany(params, {
+            ordered: false
+        }, function(error, docs) {
+            if (error) {
+                //console.log(error);
+                jsonWrite(res, error, false)
+            } else {
+                //console.log(docs)
+                jsonWrite(res, docs, true);
+            }
+        })
+    })
+    //单个添加基金数据
+router.post('/inserSingleFundProject', (req, res) => {
+        var params = req.body;
+        ProjectModel.insertMany(params, {
+            ordered: false
+        }, function(error, docs) {
+            if (error) {
+                jsonWrite(res, error, false)
+            } else {
+                jsonWrite(res, docs, true);
+            }
+        })
+    })
+    //获取指定projectid的所有数据
+router.post('/getProjectListById', (req, res) => {
+    let params = req.body;
+    console.log(params.pid);
+    var query = ProjectModel.find({
+        ProjectID: params.pid
+    });
+    query.exec(function(err, docs) {
+        if (err) {
+            jsonWrite(res, err, false)
+        } else {
+            jsonWrite(res, docs, true);
+        }
+    });
+})
 module.exports = router

@@ -6,6 +6,7 @@
         <div class="addDiv">
           <el-button type="primary" @click="addNewItem">新建</el-button>
           <el-button type="primary" @click="addBatchItems">批量添加</el-button>
+          <!-- 批量添加 dialog -->
           <el-dialog
             :visible.sync="batchAddDialog"
             width="70%"
@@ -28,17 +29,69 @@
                 </td>
               </tr>
             </table>
-            <p v-html="tableHtml"></p>
-            <span slot="footer" class="dialog-footer">
+            <!-- <p v-html="tableHtml"></p> -->
+            <div v-show="isTableShow">
+              <el-table
+                :data="newInsertDatas"
+                border
+                style="width:1190px"
+                stripe
+                size="small"
+                row-key="idIndex"
+                default-expand-all
+                :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+              >
+                <el-table-column prop="WebName" label="网站名" width="220"></el-table-column>
+                <el-table-column prop="Section" label="网站栏目" width="220"></el-table-column>
+                <el-table-column prop="Source" label="来源" width="110"></el-table-column>
+                <!-- <el-table-column prop="CityCode" label="城市" width="110"></el-table-column> -->
+                <el-table-column prop="CityName" label="城市" width="110"></el-table-column>
+                <el-table-column prop="Url" label="起始地址" width="200">
+                  <template slot-scope="scope">
+                    <el-link
+                      type="primary"
+                      :href="scope.row.Url"
+                      rel="noreferrer"
+                      v-text="scope.row.Url"
+                      target="_blank"
+                    ></el-link>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="Remark" label="备注" width="160"></el-table-column>
+                <el-table-column prop="editOp" fixed="right" label="操作" width="160">
+                  <template slot-scope="scope">
+                    <el-button
+                      @click="InsertOrUpdateItem(scope.$index,scope.row)"
+                      type="text"
+                      size="normal"
+                      v-text="scope.row.editOp"
+                    ></el-button>
+                    <el-button
+                      @click="DeleteBatchItem(scope.$index,scope.row)"
+                      type="text"
+                      size="normal"
+                      v-text="scope.row.editOpDel"
+                    ></el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <el-tag style="margin-top:10px">{{insertMsg}}</el-tag>
+            </div>
+            <span slot="footer" class="dialog-footer" v-show="isTableShow">
               <el-button @click="batchAddDialog = false">取 消</el-button>
-              <el-button type="primary" @click="BatchSubmit">批量导入</el-button>
+              <el-button type="primary" @click="BatchSubmit" v-text="batchSubmitButtonText"></el-button>
             </span>
           </el-dialog>
         </div>
-        <el-form class="searchDiv" size="mini">
-          <el-form :inline="true" class="demo-form-inline">
+        <el-form class="searchDiv" size="mini" @submit.native.prevent>
+          <el-form :inline="true" class="demo-form-inline" @submit.native.prevent>
             <el-form-item label="网站名称：">
-              <el-input v-model="searchWebName" placeholder="网站名称" clearable></el-input>
+              <el-input
+                v-model="searchWebName"
+                placeholder="网站名称"
+                clearable
+                @keyup.enter.native="Search"
+              ></el-input>
               <!-- <input class="inputC" v-model="searchWebName" placeholder="网站名称" /> -->
             </el-form-item>
             <el-form-item label="城市：">
@@ -58,7 +111,12 @@
               </el-select>
             </el-form-item>
             <el-form-item label="Url：">
-              <el-input v-model="searchStartUrl" placeholder="url" clearable></el-input>
+              <el-input
+                v-model="searchStartUrl"
+                placeholder="url"
+                clearable
+                @keyup.enter.native="Search"
+              ></el-input>
               <!-- <input class="inputC" v-model="searchStartUrl" placeholder="url" /> -->
             </el-form-item>
             <el-form-item label="数据最新日期">
@@ -82,28 +140,31 @@
           <el-table
             :data="listProject"
             border
-            style="width:1190px"
+            style="width:1490px"
             stripe
             size="medium"
             @sort-change="changeSort"
           >
-            <el-table-column prop="WebName" label="网站名" width="120" sortable="custom"></el-table-column>
-            <el-table-column prop="Section" label="网站栏目" width="120"></el-table-column>
-            <el-table-column prop="Source" label="来源" width="100"></el-table-column>
-            <el-table-column prop="CityCode" label="城市" width="100"></el-table-column>
-            <el-table-column prop="Url" label="起始Url" width="200">
+            <el-table-column prop="WebName" label="网站名" width="125" sortable="custom"></el-table-column>
+            <el-table-column prop="Section" label="网站栏目" width="125"></el-table-column>
+            <el-table-column prop="Source" label="来源" width="80"></el-table-column>
+            <el-table-column prop="CityCode" label="城市" width="80"></el-table-column>
+            <el-table-column prop="Url" label="起始Url" width="160">
               <template slot-scope="scope">
                 <el-link
                   type="primary"
                   :href="scope.row.Url"
                   v-text="scope.row.Url"
+                  rel="noreferrer"
                   target="_blank"
                 ></el-link>
               </template>
             </el-table-column>
             <el-table-column prop="LastRunTime" label="上次运行时间" width="160"></el-table-column>
             <el-table-column prop="LastDataTime" label="数据最新日期" width="160" sortable="custom"></el-table-column>
-            <el-table-column prop="DataCount" label="数据总数" width="120" sortable="custom">
+            <el-table-column prop="LastEditTime" label="上次编辑日期" width="160" sortable="custom"></el-table-column>
+
+            <el-table-column prop="DataCount" label="数据总数" width="110" sortable="custom">
               <template slot-scope="scope">
                 <el-button
                   @click="SearchDatas(scope.row)"
@@ -113,6 +174,7 @@
                 ></el-button>
               </template>
             </el-table-column>
+            <el-table-column prop="Remark" label="备注" width="80"></el-table-column>
             <el-table-column fixed="right" label="操作" width="80">
               <template slot-scope="scope">
                 <el-button @click="UpdateItem(scope.row)" type="text" size="normal">编辑</el-button>
@@ -127,9 +189,11 @@
               :page-size="10"
               layout="total, prev, pager, next, jumper"
               :total="AllCount"
+              @submit.native.prevent
             ></el-pagination>
           </div>
 
+          <!-- 添加-修改-删除 dialog -->
           <el-dialog
             :visible.sync="singleAddDialog"
             width="30%"
@@ -192,7 +256,7 @@
                 <el-checkbox v-model="form.IsParsed"></el-checkbox>
               </el-form-item>
               <el-form-item label="是否渲染" prop="NeedRender">
-                <el-checkbox v-model="form.NeedRender" disabled></el-checkbox>
+                <el-checkbox v-model="form.NeedRender"></el-checkbox>
               </el-form-item>
               <el-form-item label="行XPath" prop="RowXPath">
                 <el-input v-model="form.RowXPath"></el-input>
@@ -220,7 +284,7 @@
               <el-button type="primary" @click="Submit">提 交</el-button>
             </span>
           </el-dialog>
-
+          <!-- 数据查看dialog -->
           <el-dialog
             :title="dataDialogtitle"
             :visible.sync="dataListDialog"
@@ -234,6 +298,7 @@
                   <el-link
                     type="primary"
                     :href="scope.row.Url"
+                    rel="noreferrer"
                     v-text="scope.row.Url"
                     target="_blank"
                   ></el-link>
@@ -272,6 +337,7 @@ export default {
       singleAddDialog: false,
       batchAddDialog: false,
       dataListDialog: false,
+      editShow: true,
       batchString: "",
       tableHtml: "",
       fullscreenLoading: false,
@@ -279,6 +345,11 @@ export default {
       isReload: true,
       isCanDelete: false,
       dataDialogtitle: "",
+      newInsertDatas: [],
+      isTableShow: false,
+      batchSubmitButtonText: "批量导入",
+      insertCount: 0,
+      insertMsg: "",
       form: {
         WebName: "",
         Section: "",
@@ -287,6 +358,7 @@ export default {
         Url: "",
         LastRunTime: "",
         LastDataTime: "",
+        LastEditTime: "",
         DataCount: 0,
         IsParsed: false,
         NeedRender: false,
@@ -376,13 +448,13 @@ export default {
     }
   },
   mounted: function() {
-    console.log("LOAD_PROVINCE");
+    //console.log("LOAD_PROVINCE");
     this.$store.dispatch("LOAD_PROVINCE");
   },
   methods: {
     //按条件检索
     Search() {
-      console.log("SEARCH_PROJECTS");
+      //console.log("SEARCH_PROJECTS");
       this.$store.dispatch("SEARCH_PROJECTS");
     },
     changeSort(val) {
@@ -464,9 +536,15 @@ export default {
       this.form.RowXPath = "";
     },
     addBatchItems() {
+      //console.log("enter");
       this.type = 0;
       this.isCanDelete = false;
+      this.isReload = true;
       this.batchAddDialog = true;
+      this.buttonText = "格式化数据";
+      this.batchSubmitButtonText = "批量导入";
+      this.isTableShow = false;
+      this.batchString = "";
     },
     //add or update
     Submit() {
@@ -476,14 +554,16 @@ export default {
             var errmsg = this.form.Url + ":";
             this.$store.dispatch("ADD_NEW_PROJECT", this.form).then(
               function(value) {
-                alert(errmsg + "写入成功");
+                layer.alert(errmsg + "写入成功");
               },
               function(error) {
-                alert(error);
+                layer.alert(error);
               }
             );
             break;
           case 1:
+            this.form.LastEditTime = this.getNowFormatDate();
+            //console.log(this.form);
             this.$store.dispatch("UPDATE_PROJECT", this.form);
             break;
         }
@@ -503,7 +583,7 @@ export default {
     },
     //刷新列表
     RefreshList() {
-      console.log("RefreshList");
+      //console.log("RefreshList");
       this.$store.dispatch("PAGE_CHANGED", this.currentPage);
     },
     uuid() {
@@ -519,149 +599,305 @@ export default {
       var uuid = s.join("");
       return uuid;
     },
+
     formatBatch() {
+      let errCount = 0;
       if (this.isReload) {
         this.isReload = false;
         this.buttonText = "重新加载数据";
-        var str1 = this.batchString.replace(
-          /\n/g,
-          "</td></tr><tr><td width='200px'>"
-        );
-        str1 = str1.replace(/\t/g, "</td><td width='200px'>");
-        str1 =
-          "<table border='1px' style='word-wrap:break-word;word-break:break-all;table-layout:fixed' cellspacing='0'><tr><td width='200px'>" +
-          str1;
-        this.tableHtml = str1.substr(0, str1.length - 23) + "</table>";
-        //this.tableHtml = "";
-      } else {
-        this.isReload = true;
-        this.buttonText = "格式化数据";
-
-        //this.batchString = "";
-      }
-    },
-    BatchSubmit() {
-      var sCount = 0;
-      var eCount = 0;
-      var items = this.batchString.split("\n");
-      if (items.length >= 2) {
-        const loading = this.$loading({
-          lock: true,
-          text: "批量导入数据中",
-          spinner: "el-icon-loading",
-          background: "rgba(0, 0, 0, 0.7)"
-        });
-        var keys = items[0].split("\t");
-        var indexs = [];
-        for (var i = 1, len = items.length; i < len; i++) {
-          var item = items[i].split("\t");
-          if (item.length > 1) {
-            var dic = new Array();
-            for (var j = 0, jlen = keys.length; j < jlen; j++) {
-              dic[keys[j]] = item[j];
-            }
-            var str = dic["City"] == undefined ? null : dic["City"];
-            var itemCityCode = null;
-            if (str != null) {
-              this.ProvinceList.forEach(pelement => {
-                if (pelement.省市名称 == str) {
-                  itemCityCode = pelement.省市代码;
-                }
-              });
-            }
-
-            if (dic["Url"] != undefined && dic["Url"] != "") {
-              var params = {
+        this.isTableShow = true;
+        this.newInsertDatas = [];
+        this.insertMsg = "";
+        this.insertCount = 0;
+        // 将数据写入el-table中
+        let items = this.batchString.split("\n");
+        if (items.length >= 2) {
+          let keys = items[0].split("\t");
+          for (let i = 1, len = items.length; i < len; i++) {
+            let values = items[i].split("\t");
+            if (values.length > 1) {
+              let dic = new Array();
+              for (let j = 0, jlen = keys.length; j < jlen; j++) {
+                dic[keys[j]] = values[j];
+              }
+              let str = dic["City"] == undefined ? null : dic["City"];
+              let itemCityCode = null;
+              if (str != null) {
+                this.ProvinceList.forEach(pelement => {
+                  if (pelement.省市名称 == str) {
+                    itemCityCode = pelement.省市代码;
+                  }
+                });
+              }
+              let dateNow = new Date();
+              let insertItem = {
+                idIndex: i,
                 WebName: dic["WebName"] == undefined ? "" : dic["WebName"],
                 Section: dic["Section"] == undefined ? "" : dic["Section"],
                 Source: dic["Source"] == undefined ? "" : dic["Source"],
                 CityCode: itemCityCode,
+                CityName: dic["City"] == undefined ? null : dic["City"],
                 Url: dic["Url"] == undefined ? "" : dic["Url"],
-                LastRunTime:
-                  dic["LastRunTime"] == undefined ? null : dic["LastRunTime"],
-                LastDataTime:
-                  dic["LastDataTime"] == undefined ? null : dic["LastDataTime"],
-                DataCount: dic["DataCount"] == undefined ? 0 : dic["DataCount"],
-                RowXPath: dic["RowXPath"] == undefined ? "" : dic["RowXPath"],
-                LinkXPath:
-                  dic["LinkXPath"] == undefined ? "" : dic["LinkXPath"],
-                TitleXPath:
-                  dic["TitleXPath"] == undefined ? "" : dic["TitleXPath"],
-                DateXPath:
-                  dic["DateXPath"] == undefined ? "" : dic["DateXPath"],
-                IsParsed: dic["IsParsed"] == false ? "" : dic["IsParsed"],
-                NeedRender: dic["NeedRender"] == false ? "" : dic["NeedRender"],
-                Remark: dic["Remark"] == undefined ? "" : dic["Remark"]
+                Remark: dic["Remark"] == undefined ? "" : dic["Remark"],
+
+                editOpDel: "删除"
               };
-              this.$store.dispatch("ADD_NEW_PROJECT", params).then(
-                function(value) {
-                  sCount++;
-                  setTimeout(() => {
-                    loading.text =
-                      "成功" +
-                      sCount.toString() +
-                      "条<br/>失败" +
-                      eCount.toString() +
-                      "条";
-                  }, 1000);
-                  if (eCount + sCount == items.length - 2) {
-                    setTimeout(() => {
-                      loading.text = "批量导入完成";
-                      loading.close();
-                    }, 1000);
-                    let errMsg = "";
-                    indexs.forEach(ei => {
-                      errMsg += ei + "<br/>";
-                    });
-                    layer.alert(
-                      "成功" +
-                        sCount.toString() +
-                        "条<br/>失败" +
-                        eCount.toString() +
-                        "条                                                                            " +
-                        errMsg
-                    );
-                  }
-                },
-                function(error) {
-                  indexs.push(error);
-                  eCount++;
-                  setTimeout(() => {
-                    loading.text =
-                      "成功" +
-                      sCount.toString() +
-                      "条     失败" +
-                      eCount.toString() +
-                      "条";
-                  }, 1000);
-                  if (eCount + sCount == items.length - 2) {
-                    loading.text = "批量导入完成";
-                    loading.close();
-                    let errMsg = "";
-                    let k = 1;
-                    indexs.forEach(ei => {
-                      errMsg += ei + "<br/>";
-                      k++;
-                    });
-                    layer.alert(
-                      "成功" +
-                        sCount.toString() +
-                        "条<br/>失败" +
-                        eCount.toString() +
-                        "条<br/>" +
-                        errMsg
-                    );
-                  }
+              if (insertItem.Url != "") {
+                this.newInsertDatas.push(insertItem);
+                this.insertCount++;
+              } else {
+                errCount++;
+                console.log(insertItem);
+              }
+            }
+          }
+        }
+        if (errCount > 0) {
+          this.$message({
+            type: "error",
+            message:
+              "存在解析失败的url，请确认数据中是否存在url为空的情况或者换行!"
+          });
+        }
+
+        this.insertMsg = "插入数据" + this.insertCount + "条";
+      } else {
+        this.isReload = true;
+        this.buttonText = "格式化数据";
+        this.isTableShow = false;
+        this.batchString = "";
+        this.newInsertDatas = [];
+        this.insertMsg = "";
+        this.insertCount = 0;
+      }
+    },
+    //批量提交
+    BatchSubmit() {
+      if (this.batchSubmitButtonText == "批量导入") {
+        this.BatchInsert();
+      } else {
+        this.BatchUpdate();
+      }
+    },
+    //批量插入
+    BatchInsert() {
+      const loading = this.$loading({
+        lock: true,
+        text: "批量导入数据中",
+        spinner: "el-icon-loading",
+        background: "rgba(0, 0, 0, 0.7)"
+      });
+      let standardInsertDatas = [];
+      this.newInsertDatas.forEach(ele => {
+        standardInsertDatas.push({
+          WebName: ele.WebName,
+          Section: ele.Section,
+          LinkXPath: "",
+          TitleXPath: "",
+          DateXPath: "",
+          Remark: ele.Remark,
+          Source: ele.Source,
+          CityCode: ele.CityCode,
+          Url: ele.Url,
+          LastRunTime: null,
+          LastDataTime: null,
+          DataCount: 0,
+          IsParsed: false,
+          NeedRender: false,
+          RowXPath: ""
+        });
+      });
+      // console.log(standardInsertDatas.length);
+      this.$store.dispatch("BATCH_ADD_PROJECTS", standardInsertDatas).then(
+        sucessValue => {
+          layer.alert("全部成功写入");
+          loading.close();
+          this.batchSubmitButtonText = "批量导入";
+          this.buttonText = "格式化数据";
+          this.isTableShow = false;
+          this.isReload = true;
+          this.newInsertDatas = [];
+          this.batchString = "";
+          this.insertMsg = "";
+          this.insertCount = 0;
+        },
+        retErr => {
+          this.batchSubmitButtonText = "批量更新";
+          let err = retErr.data.err;
+          layer.alert(
+            "成功" +
+              err.result.nInserted +
+              "条<br>失败" +
+              err.result.writeErrors.length +
+              "条"
+          );
+          this.insertCount = err.result.writeErrors.length;
+          this.insertMsg = "更新数据" + this.insertCount + "条";
+          loading.close();
+          let errList = err.result.writeErrors;
+          let tempInsertDatas = [];
+          errList.forEach(errItem => {
+            let childData = errItem.op;
+            let childId = errItem.index + 1 + 1000000;
+            let insertErrData = this.newInsertDatas[errItem.index];
+            tempInsertDatas.push({
+              idIndex: insertErrData.idIndex,
+              WebName: insertErrData.WebName,
+              Section: insertErrData.Section,
+              Source: insertErrData.Source,
+              CityCode: insertErrData.CityCode,
+              CityName: insertErrData.CityName,
+              Url: insertErrData.Url,
+              Remark: insertErrData.Remark,
+              LastEditTime: this.getNowFormatDate(),
+              editOp: "更新",
+              editOpDel: "删除",
+              children: [
+                {
+                  idIndex: childId,
+                  WebName: childData.WebName,
+                  Url: childData.Url,
+                  CityCode: childData.CityCode,
+                  Section: childData.Section,
+                  Source: childData.Source,
+                  Remark: childData.Remark
                 }
+              ]
+            });
+          });
+          //console.log(tempInsertDatas);
+          this.newInsertDatas = tempInsertDatas;
+        }
+      );
+    },
+    //批量更新
+    BatchUpdate() {
+      let loading = this.$loading({
+        lock: true,
+        text: "批量更新数据中",
+        spinner: "el-icon-loading",
+        background: "rgba(0, 0, 0, 0.7)"
+      });
+      let sCount = 0;
+      let eCount = 0;
+      let len = this.newInsertDatas.length;
+      let errMsg = "";
+      this.newInsertDatas.forEach(ele => {
+        ele.LastEditTime = this.getNowFormatDate();
+        this.$store.dispatch("UPDATE_INSERTFAILED_PROJECT", ele).then(
+          success => {
+            //console.log(ele.Url);
+            let ind = 0;
+            let urlIndex = 0;
+            this.newInsertDatas.forEach(it => {
+              if (it.Url == ele.Url) urlIndex = ind;
+              ind++;
+            });
+            sCount++;
+            this.insertCount--;
+            this.insertMsg = "更新数据" + this.insertCount + "条";
+            this.newInsertDatas.splice(urlIndex, 1);
+            if (sCount == len) {
+              loading.close();
+              layer.alert("全部更新成功");
+              this.batchSubmitButtonText = "批量导入";
+              this.buttonText = "格式化数据";
+              this.isTableShow = false;
+              this.isReload = true;
+              this.newInsertDatas = [];
+              this.batchString = "";
+              this.insertCount = 0;
+              this.insertMsg = "";
+            } else {
+              if (eCount + sCount == len) {
+                loading.close();
+                layer.alert(
+                  "成功" +
+                    sCount.toString() +
+                    "条<br/>失败" +
+                    eCount.toString() +
+                    "条                                                                            " +
+                    errMsg
+                );
+              }
+            }
+          },
+          err => {
+            errMsg += ele.Url + err + "<br/>";
+            eCount++;
+            if (eCount + sCount == len) {
+              loading.close();
+              layer.alert(
+                "成功" +
+                  sCount.toString() +
+                  "条<br/>失败" +
+                  eCount.toString() +
+                  "条                                                                            " +
+                  errMsg
               );
             }
           }
+        );
+      });
+    },
+    InsertOrUpdateItem(index, row) {
+      row.LastEditTime = this.getNowFormatDate();
+      // console.log(row);
+      this.$store.dispatch("UPDATE_INSERTFAILED_PROJECT", row).then(
+        success => {
+          let urlIndex = 0;
+          let ti = 0;
+          this.newInsertDatas.forEach(it => {
+            if (it.Url == row.Url) urlIndex = ti;
+            ti++;
+          });
+          this.newInsertDatas.splice(urlIndex, 1);
+          this.insertCount--;
 
-          // this.batchAddDialog = false;
+          this.$message({
+            type: "success",
+            message: "更新成功!"
+          });
+          // this.insertMsg = "更新数据" + this.insertCount + "条";
+          // if (this.insertCount == 0) {
+          //   this.insertCount = 0;
+          //   this.insertMsg = "";
+          // }
+        },
+        err => {
+          this.$message({
+            type: "error",
+            message: "更新失败!"
+          });
+          console.log(error);
         }
-      } else {
-        alert("输入数据不合法\n请输入合法数据(同时包含表头和数据)");
-      }
+      );
+    },
+    DeleteBatchItem(index, row) {
+      this.$confirm("此操作将删除该记录, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      })
+        .then(() => {
+          let urlIndex = 0;
+          let ti = 0;
+          this.newInsertDatas.forEach(it => {
+            if (it.Url == row.Url) urlIndex = ti;
+            ti++;
+          });
+          this.newInsertDatas.splice(urlIndex, 1);
+          this.$message({
+            type: "success",
+            message: "删除成功!"
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消删除"
+          });
+        });
     },
 
     initForm() {
@@ -679,6 +915,29 @@ export default {
       this.form.RowXPath = "";
       this.form.IsParsed = false;
       this.form.NeedRender = false;
+    },
+    getNowFormatDate() {
+      var date = new Date();
+      var seperator1 = "-";
+      var seperator2 = ":";
+      var month =
+        date.getMonth() + 1 < 10
+          ? "0" + (date.getMonth() + 1)
+          : date.getMonth() + 1;
+      var strDate = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
+      var currentdate =
+        date.getFullYear() +
+        seperator1 +
+        month +
+        seperator1 +
+        strDate +
+        " " +
+        date.getHours() +
+        seperator2 +
+        date.getMinutes() +
+        seperator2 +
+        date.getSeconds();
+      return currentdate;
     }
   }
 };

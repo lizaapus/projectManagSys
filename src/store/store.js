@@ -14,6 +14,10 @@ Vue.use(Vuex)
 export default new Vuex.Store({
     state: {
         listProject: [],
+        listFunds: [],
+        SelectedFund: '',
+        InputEnable: true,
+        FundDetail: '',
         searchWebName: '',
         searchCity: '',
         searchStartUrl: '',
@@ -49,15 +53,26 @@ export default new Vuex.Store({
                 });
                 projectlist[i].LastRunTime = element.LastRunTime == '0000-00-00 00:00:00' || element.LastRunTime == '' || element.LastRunTime == null ? "" : moment(element.LastRunTime).format('YYYY-MM-DD HH:mm:ss');
                 projectlist[i].LastDataTime = element.LastDataTime == '0000-00-00 00:00:00' || element.LastDataTime == '' || element.LastDataTime == null ? "" : moment(element.LastDataTime).format('YYYY-MM-DD HH:mm:ss');
+                projectlist[i].LastEditTime = element.LastEditTime == '0000-00-00 00:00:00' || element.LastEditTime == '' || element.LastEditTime == null ? "" : moment(element.LastEditTime).format('YYYY-MM-DD HH:mm:ss');
                 i++;
             });
             state.listProject = projectlist
+        },
+        SET_FUND_LIST: (state, {
+            fundList
+        }) => {
+            state.listFunds = fundList;
         },
         SET_ALL_COUNT: (state, {
             count
         }) => {
             if (count < (state.currentPage - 1) * 10)
                 state.currentPage = 1;
+            if (count == (state.currentPage - 1) * 10)
+                state.currentPage = state.currentPage - 1;
+            if (count == 0)
+                state.currentPage = 1;
+            //console.log(count + ":" + state.currentPage);
             state.AllCount = count;
             state.startindex = (state.currentPage - 1) * 10;
             state.offsite = state.currentPage * 10 > state.AllCount ? state.AllCount : 10;
@@ -81,6 +96,7 @@ export default new Vuex.Store({
             state.DataStartIndex = (val - 1) * 10;
             state.DataOffsite = 10 > (state.DataCount - (val - 1) * 10) ? (state.DataCount - (val - 1) * 10) : 10;
         },
+
         SET_DATA_COUNT: (state, {
             count
         }) => {
@@ -107,6 +123,7 @@ export default new Vuex.Store({
         SET_CITY(state, val) {
             state.searchCity = val;
         },
+
         SET_URL(state, val) {
             state.searchStartUrl = val;
         },
@@ -117,7 +134,17 @@ export default new Vuex.Store({
             val
         }) => {
             state.sortParams = val;
-        }
+        },
+        SET_SELECTED_FUND(state, val) {
+            state.listFunds.forEach(element => {
+                if (element.FundName == val) {
+                    state.SelectedFund = element;
+                    state.InputEnable = false;
+                }
+
+            });
+
+        },
     },
     actions: {
         LOAD_PROVINCE: function({
@@ -235,6 +262,26 @@ export default new Vuex.Store({
                 })
             })
         },
+
+        BATCH_ADD_PROJECTS({
+            dispatch,
+            commit
+        }, params) {
+            return new Promise((resolve, reject) => {
+                axios.post('/api/project/insertManyProject', params).then((res) => {
+                    if (res.data.code == 0) {
+                        dispatch("SEARCH_PROJECTS")
+                        resolve(0)
+                    } else {
+                        //console.log(res);
+                        dispatch("SEARCH_PROJECTS")
+                        reject(res)
+                    }
+                })
+            })
+        },
+
+
         //删除指定项目
         DELETE_PROJECT: function({
             dispatch,
@@ -255,22 +302,50 @@ export default new Vuex.Store({
             commit
         }, params) {
             axios.post('/api/project/updateItem', params).then((res) => {
+                //console.log(res);
                 if (res.data.code == 0) {
-                    dispatch('LOAD_PROJECT_LIST');
+                    dispatch('SEARCH_PROJECTS');
                 } else {
                     if (res.data.code == 11000) {
                         let errmsg = res.data.msg;
                         let msgIndex = errmsg.indexOf("dup key:");
                         errmsg = errmsg.slice(msgIndex + 14, errmsg.length - 3)
-                        errmsg += "写入失败，该url已存在"
+                        errmsg += "更新失败，该url已存在"
                         layer.alert(errmsg)
                     } else {
+
                         layer.alert(res.data.msg)
                     }
 
                 }
                 // dispatch('LOAD_PROJECT_LIST');
             })
+        },
+        UPDATE_INSERTFAILED_PROJECT: function({
+            dispatch,
+            commit,
+            state
+        }, params) {
+            return new Promise((resolve, reject) => {
+                axios.post('/api/project/updateInsertItem', params).then((res) => {
+                    if (res.data.code == 0) {
+                        dispatch('SEARCH_PROJECTS');
+                        resolve(0)
+                    } else {
+                        if (res.data.code == 11000) {
+                            let errmsg = res.data.msg;
+                            let msgIndex = errmsg.indexOf("dup key:");
+                            errmsg = errmsg.slice(msgIndex + 14, errmsg.length - 3)
+                            errmsg += "更新失败，该url已存在"
+                            layer.alert(errmsg)
+                            reject(res)
+                        } else {
+                            layer.alert(res.data.msg)
+                            reject(res)
+                        }
+                    }
+                })
+            });
         },
         //查询符合条件的项目
         SEARCH_PROJECTS: function({
@@ -297,7 +372,6 @@ export default new Vuex.Store({
             };
             axios.post('api/project/searchItemsCount', params).then((res) => {
                 if (res.data.code == 0) {
-                    console.log(res.data);
                     commit('SET_ALL_COUNT', {
                         count: parseInt(res.data.data)
                     })
@@ -399,11 +473,78 @@ export default new Vuex.Store({
                 val: sortP
             });
             dispatch("SEARCH_PROJECTS");
+        },
+        SEARCH_FUNDS({
+            dispatch,
+            commit,
+            state
+        }, params) {
+            var keyword = params;
+            axios.post('/api/project/getFundsList', keyword).then((res) => {
+                commit('SET_FUND_LIST', {
+                    fundList: res.data.data
+                });
+                if (state.listFunds.length == 0) {
+                    state.SelectedFund = "";
+                    state.InputEnable = true;
+                }
+
+
+            });
+
+        },
+        BATCH_ADD_FUND_PROJECTS({
+            dispatch,
+            commit
+        }, params) {
+            return new Promise((resolve, reject) => {
+                axios.post('/api/project/insertManyFundProject', params).then((res) => {
+                    if (res.data.code == 0) {
+                        resolve(0)
+                    } else {
+                        reject(res)
+                    }
+                })
+            })
+        },
+        SINGLE_ADD_FUND_PROJECT({
+            dispatch,
+            commit
+        }, params) {
+            return new Promise((resolve, reject) => {
+                axios.post('/api/project/inserSingleFundProject', params).then((res) => {
+                    if (res.data.code == 0) {
+                        resolve(0);
+                    } else {
+                        reject(res);
+                    }
+                })
+            })
+        },
+        FIND_PROJECT_BY_ID({
+            dispatch,
+            commit
+        }, params) {
+            return new Promise((resolve, reject) => {
+                axios.post('/api/project/getProjectListById', params).then((res) => {
+                    if (res.data.code == 0) {
+                        resolve(res.data.data);
+                    } else {
+                        reject(res);
+                    }
+                });
+            })
         }
     },
     getters: {
         listProject: state => {
             return state.listProject;
+        },
+        listFunds: state => {
+            return state.listFunds;
+        },
+        InputEnable: state => {
+            return state.InputEnable;
         },
         searchWebName: state => {
             return state.searchWebName;

@@ -51,7 +51,9 @@
               </template>
             </el-table-column>
           </el-table>
+          <el-tag v-model="insertMsg"></el-tag>
         </tr>
+        
       </table>
       <p v-html="tableHtml"></p>
       <span slot="footer" class="dialog-footer">
@@ -97,16 +99,7 @@ export default {
         this.isReload = false;
         this.buttonText = "重新加载数据";
         this.tableVisibility = true;
-        var str1 = this.batchString.replace(
-          /\n/g,
-          "</td></tr><tr><td width='200px'>"
-        );
-        str1 = str1.replace(/\t/g, "</td><td width='200px'>");
-        str1 =
-          "<table border='1px' style='word-wrap:break-word;word-break:break-all;table-layout:fixed' cellspacing='0'><tr><td width='200px'>" +
-          str1;
-        this.tableHtml = str1.substr(0, str1.length - 23) + "</table>";
-        //this.tableHtml = "";
+
       } else {
         this.isReload = true;
         this.buttonText = "格式化数据";
@@ -114,7 +107,28 @@ export default {
         newInsertDatas = [];
       }
     },
-    RefreshList() {}
+    RefreshList() {},
+     BatchSubmit() {
+         let items = this.batchString.split("\n");
+         if (items.length >= 2) {
+             const loading = this.$loading({
+            lock: true,
+            text: "批量导入数据中",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.7)"
+            });
+            let keys = items[0].split("\t");
+            for (let i = 1, len = items.length; i < len; i++) {
+                let values = items[i].split("\t");
+                if (values.length > 1) {
+                    var dic = new Array();
+                    for (var j = 0, jlen = keys.length; j < jlen; j++) {
+                        dic[keys[j]] = values[j];
+                    }
+                }
+            }
+         }
+     }
   }
 };
 </script>

@@ -3,7 +3,7 @@ module.exports = {
     configureWebpack: {
         devtool: 'source-map',
         devServer: {
-            port: 7100,
+            port: 7200,
             open: true,
             proxy: {
                 '/api': {

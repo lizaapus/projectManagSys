@@ -11,26 +11,6 @@ var sqlMap = {
         getLimitItem: 'select * from project limit ?,?',
         getCount: 'select count(*) from project',
 
-        // searchItems1: 'select * from project where WebName = ? limit ?,?',
-        // searchItems1Count: 'select count(*) from project where WebName = ? ',
-
-        // searchItems2: 'select * from project where Url = ? limit ?,?',
-        // searchItems2Count: 'select count(*) from project where Url = ? limit ?,?',
-
-        // searchItems3: 'select * from project where CityCode = ? limit ?,?',
-        // searchItems3Count: 'select count(*) from project where CityCode = ?',
-
-        // searchItems4: 'select * from project where WebName = ? AND Url = ? limit ?,?',
-        // searchItems4Count: 'select count(*) from project  where WebName = ? AND Url = ?',
-
-        // searchItems5: 'select * from project where WebName = ? AND CityCode = ? limit ?,?',
-        // searchItems5Count: 'select count(*) from project where WebName = ? AND CityCode = ?',
-
-        // searchItems6: 'select * from project where Url = ? AND CityCode = ? limit ?,?',
-        // searchItems6Count: 'select count(*) from project where Url = ? AND CityCode = ?',
-
-        // searchItems7: 'select * from project where WebName = ? AND Url = ? AND CityCode = ? limit ?,?',
-        // searchItems7Count: 'select count(*) from project where WebName = ? AND Url = ? AND CityCode = ? ',
         searchItems1A1B1C1DCount: 'select count(*) from project where WebName = ? AND Url = ? AND CityCode = ? AND LatestTime =?',
         searchItems1A1B1C1D: 'select * from project where WebName = ? AND Url = ? AND CityCode = ? AND LatestTime =? limit ?,?',
 
